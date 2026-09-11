@@ -7,7 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build-container:
+    name: Build & Push Image
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -27,6 +28,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Lowercase Repository Name
+        id: repo
+        run: echo "NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
@@ -35,12 +40,17 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ steps.repo.outputs.NAME }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Deploy to Google Cloud VM via SSH
-        if: env.VM_HOST != ''
+  deploy-vm:
+    name: Deploy to VM
+    needs: build-container
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        if: "${{ env.VM_HOST != '' }}"
         uses: appleboy/ssh-action@v1.0.3
         env:
           VM_HOST: ${{ secrets.VM_HOST }}
@@ -50,7 +60,6 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           port: 22
           script: |
-            cd ~/nexwhat
+            cd ~/nexwhat || cd nexwhat
             git pull origin main
-            sudo docker compose pull app || true
-            sudo docker compose up -d --remove-orphans
+            sudo docker compose up -d --build
