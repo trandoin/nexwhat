@@ -451,7 +451,7 @@ function getFirstAccessibleRoute(authStore: ReturnType<typeof useAuthStore>): st
 }
 
 // Navigation guard
-router.beforeEach(async (to, _from, next) => {
+router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
 
   // Hydrate the store from localStorage before any route decision
@@ -461,13 +461,7 @@ router.beforeEach(async (to, _from, next) => {
 
   // Handle public landing page (root path '/' or route named 'landing')
   if (to.path === '/' || to.name === 'landing') {
-    if (authStore.isAuthenticated) {
-      return next({ path: getFirstAccessibleRoute(authStore) })
-    }
-    if (to.name === 'landing') {
-      return next()
-    }
-    return next({ name: 'landing' })
+    return next()
   }
 
   // Handle public auth pages when already logged in
