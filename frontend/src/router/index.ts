@@ -411,12 +411,15 @@ router.beforeEach(async (to, _from, next) => {
     authStore.restoreSession()
   }
 
-  // Handle public landing page
-  if (to.name === 'landing') {
+  // Handle public landing page (root path '/' or route named 'landing')
+  if (to.path === '/' || to.name === 'landing') {
     if (authStore.isAuthenticated) {
       return next({ path: getFirstAccessibleRoute(authStore) })
     }
-    return next()
+    if (to.name === 'landing') {
+      return next()
+    }
+    return next({ name: 'landing' })
   }
 
   // Handle public auth pages when already logged in

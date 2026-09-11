@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, RouterLink } from 'vue-router'
 import {
   MessageSquare,
   Sparkles,
@@ -14,7 +14,6 @@ import {
   ArrowRight,
   TrendingUp,
   Percent,
-  Sliders,
   DollarSign,
   ChevronDown,
   Globe,
