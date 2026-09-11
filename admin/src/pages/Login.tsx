@@ -1,15 +1,21 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MessageSquare, Lock, Mail, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 export const Login: React.FC = () => {
-  const { login } = useAuth()
+  const { login, token, user } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('admin@admin.com')
   const [password, setPassword] = useState('admin')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (token || user) {
+      navigate('/', { replace: true })
+    }
+  }, [token, user, navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -18,7 +24,7 @@ export const Login: React.FC = () => {
 
     try {
       await login(email, password)
-      navigate('/')
+      navigate('/', { replace: true })
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Authentication failed. Invalid super admin credentials.')
     } finally {

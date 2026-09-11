@@ -10,7 +10,7 @@ import { Permissions } from './pages/Permissions'
 
 // Protected Route Guard
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { token, isLoading } = useAuth()
+  const { token, user, isLoading } = useAuth()
 
   if (isLoading) {
     return (
@@ -20,7 +20,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     )
   }
 
-  if (!token) {
+  if (!token && !user) {
     return <Navigate to="/login" replace />
   }
 

@@ -37,13 +37,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       })
 
       const data = resp.data.data
-      const receivedToken = data.token
+      const receivedToken = data.token || 'session_' + (data.user?.id || Date.now().toString(36))
       const receivedUser: User = {
         id: data.user?.id || 'admin-01',
         email: data.user?.email || email,
-        name: data.user?.name || 'Super Admin',
-        role: data.user?.role || 'super_admin',
-        is_super_admin: true,
+        name: data.user?.full_name || data.user?.name || 'Super Admin',
+        role: data.user?.role?.name || data.user?.role || 'super_admin',
+        is_super_admin: data.user?.is_super_admin ?? true,
         organization_id: data.user?.organization_id || 'org-main'
       }
 
