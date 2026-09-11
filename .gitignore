@@ -36,6 +36,11 @@ frontend/dist/
 frontend/.env.local
 frontend/.env.*.local
 
+# Admin Console
+admin/node_modules/
+admin/dist/
+admin/.env.local
+
 # Playwright
 frontend/playwright-report/
 frontend/test-results/

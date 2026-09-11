@@ -1,0 +1,10 @@
+.git
+.github
+**/node_modules
+**/dist
+admin
+docs
+*.md
+*.log
+uploads/
+audio/
