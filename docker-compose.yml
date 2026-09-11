@@ -1,10 +1,10 @@
 services:
-  # Whatomatservices:
   app:
     image: shridh0r/whatomate:latest
     container_name: nexwhat_app
     restart: unless-stopped
     ports:
+      - "80:8080"
       - "8080:8080"
     networks:
       - nexwhat_network
