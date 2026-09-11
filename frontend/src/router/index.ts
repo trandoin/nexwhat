@@ -41,7 +41,7 @@ const router = createRouter({
       meta: { requiresAuth: false }
     },
     {
-      path: '/',
+      path: '',
       component: () => import('@/components/layout/AppLayout.vue'),
       meta: { requiresAuth: true },
       children: [
@@ -406,9 +406,22 @@ function getFirstAccessibleRoute(authStore: ReturnType<typeof useAuthStore>): st
 router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
-  // Hydrate the store from localStorage before any route decision — an authenticated user hitting /login must be redirected away.
-  if (!authStore.isAuthenticated && (to.meta.requiresAuth !== false || to.name === 'login' || to.name === 'register' || to.name === 'landing')) {
+  // Hydrate the store from localStorage before any route decision
+  if (!authStore.isAuthenticated) {
     authStore.restoreSession()
+  }
+
+  // Handle public landing page
+  if (to.name === 'landing') {
+    if (authStore.isAuthenticated) {
+      return next({ path: getFirstAccessibleRoute(authStore) })
+    }
+    return next()
+  }
+
+  // Handle public auth pages when already logged in
+  if (authStore.isAuthenticated && (to.name === 'login' || to.name === 'register')) {
+    return next({ path: getFirstAccessibleRoute(authStore) })
   }
 
   // Check if route requires auth
@@ -424,11 +437,6 @@ router.beforeEach(async (to, _from, next) => {
         // Redirect to first accessible page
         return next({ path: getFirstAccessibleRoute(authStore) })
       }
-    }
-  } else {
-    // Redirect to appropriate page if already logged in
-    if (authStore.isAuthenticated && (to.name === 'login' || to.name === 'register' || to.name === 'landing')) {
-      return next({ path: getFirstAccessibleRoute(authStore) })
     }
   }
 
