@@ -1,8 +1,8 @@
-<a href="https://zerodha.tech"><img src="https://zerodha.tech/static/images/github-badge.svg" align="right" alt="Zerodha Tech Badge" /></a>
+# NexWhat
 
-# Whatomate
+[![CI/CD Deploy to VM](https://github.com/trandoin/nexwhat/actions/workflows/deploy.yml/badge.svg)](https://github.com/trandoin/nexwhat/actions/workflows/deploy.yml)
 
-Modern, open-source WhatsApp Business Platform. Single binary app.
+Modern, open-source WhatsApp Business Platform & Marketing Engine. Built for zero-cost self-hosting.
 
 ![Dashboard](docs/public/images/dashboard-light.png#gh-light-mode-only)
 ![Dashboard](docs/public/images/dashboard-dark.png#gh-dark-mode-only)
