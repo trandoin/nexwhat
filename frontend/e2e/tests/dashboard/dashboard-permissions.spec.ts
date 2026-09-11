@@ -12,7 +12,7 @@ test.describe('Dashboard Widget Permissions', () => {
   test.describe('Admin User (with full permissions)', () => {
     test.beforeEach(async ({ page }) => {
       await loginAsAdmin(page)
-      await page.goto('/')
+      await page.goto('/dashboard')
       await page.waitForLoadState('networkidle')
     })
 
@@ -54,7 +54,7 @@ test.describe('Dashboard Widget Permissions', () => {
 
     test('user with analytics:write can see Add Widget button', async ({ page }) => {
       await loginAs(page, user)
-      await page.goto('/')
+      await page.goto('/dashboard')
       await page.waitForLoadState('networkidle')
 
       const addButton = page.locator('button').filter({ hasText: /Add Widget/i })
@@ -63,7 +63,7 @@ test.describe('Dashboard Widget Permissions', () => {
 
     test('user with analytics:write can see edit button on widget hover', async ({ page }) => {
       await loginAs(page, user)
-      await page.goto('/')
+      await page.goto('/dashboard')
       await page.waitForLoadState('networkidle')
       await page.waitForSelector('.card-depth', { timeout: 10000 })
 
@@ -96,7 +96,7 @@ test.describe('Dashboard Widget Permissions', () => {
 
     test('user with analytics:delete can see delete button on widget hover', async ({ page }) => {
       await loginAs(page, user)
-      await page.goto('/')
+      await page.goto('/dashboard')
       await page.waitForLoadState('networkidle')
       await page.waitForSelector('.card-depth', { timeout: 10000 })
 
@@ -107,7 +107,7 @@ test.describe('Dashboard Widget Permissions', () => {
 
     test('user with analytics:delete but NOT analytics:write cannot see Add Widget button', async ({ page }) => {
       await loginAs(page, user)
-      await page.goto('/')
+      await page.goto('/dashboard')
       await page.waitForLoadState('networkidle')
 
       const addButton = page.locator('button').filter({ hasText: /Add Widget/i })
@@ -116,7 +116,7 @@ test.describe('Dashboard Widget Permissions', () => {
 
     test('user with analytics:delete but NOT analytics:write cannot see edit button', async ({ page }) => {
       await loginAs(page, user)
-      await page.goto('/')
+      await page.goto('/dashboard')
       await page.waitForLoadState('networkidle')
       await page.waitForSelector('.card-depth', { timeout: 10000 })
 
@@ -146,7 +146,7 @@ test.describe('Dashboard Widget Permissions', () => {
 
     test('user with only analytics:read cannot see Add Widget button', async ({ page }) => {
       await loginAs(page, user)
-      await page.goto('/')
+      await page.goto('/dashboard')
       await page.waitForLoadState('networkidle')
 
       const addButton = page.locator('button').filter({ hasText: /Add Widget/i })
@@ -155,7 +155,7 @@ test.describe('Dashboard Widget Permissions', () => {
 
     test('user with only analytics:read cannot see edit button on widget hover', async ({ page }) => {
       await loginAs(page, user)
-      await page.goto('/')
+      await page.goto('/dashboard')
       await page.waitForLoadState('networkidle')
       await page.waitForSelector('.card-depth', { timeout: 10000 })
 
@@ -166,7 +166,7 @@ test.describe('Dashboard Widget Permissions', () => {
 
     test('user with only analytics:read cannot see delete button on widget hover', async ({ page }) => {
       await loginAs(page, user)
-      await page.goto('/')
+      await page.goto('/dashboard')
       await page.waitForLoadState('networkidle')
       await page.waitForSelector('.card-depth', { timeout: 10000 })
 
@@ -177,7 +177,7 @@ test.describe('Dashboard Widget Permissions', () => {
 
     test('user with only analytics:read can still view dashboard and widgets', async ({ page }) => {
       await loginAs(page, user)
-      await page.goto('/')
+      await page.goto('/dashboard')
       await page.waitForLoadState('networkidle')
 
       await expect(page.locator('h1')).toContainText('Dashboard')
@@ -211,7 +211,7 @@ test.describe('Dashboard Widget Permissions', () => {
 
     test('user with full analytics permissions can see all widget controls', async ({ page }) => {
       await loginAs(page, user)
-      await page.goto('/')
+      await page.goto('/dashboard')
       await page.waitForLoadState('networkidle')
 
       const addButton = page.locator('button').filter({ hasText: /Add Widget/i })

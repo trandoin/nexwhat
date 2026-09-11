@@ -23,15 +23,15 @@ async function createOrgForRegister(api: ApiHelper, label: string): Promise<stri
 }
 
 test.describe('Register', () => {
-  test('should show invitation required message without org param', async ({ page }) => {
+  test('should show self-service registration form without org param', async ({ page }) => {
     await page.goto('/register')
 
-    await expect(page.locator('input#fullName')).not.toBeVisible()
-    await expect(page.locator('input#email')).not.toBeVisible()
-    await expect(page.locator('input#password')).not.toBeVisible()
-
-    await expect(page.locator('text=/invitation/i')).toBeVisible()
-    await expect(page.getByRole('link', { name: /Sign in/i })).toBeVisible()
+    await expect(page.locator('input#companyName')).toBeVisible()
+    await expect(page.locator('input#fullName')).toBeVisible()
+    await expect(page.locator('input#email')).toBeVisible()
+    await expect(page.locator('input#password')).toBeVisible()
+    await expect(page.locator('input#confirmPassword')).toBeVisible()
+    await expect(page.locator('button[type="submit"]')).toBeVisible()
   })
 
   test('should display registration form with org query param', async ({ page, request }) => {

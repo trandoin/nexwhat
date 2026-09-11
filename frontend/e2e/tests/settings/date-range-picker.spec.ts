@@ -35,7 +35,7 @@ test.describe('DateRangePicker — re-open after Apply', () => {
   })
 
   test('calendar grid renders on second open with previously applied range', async ({ page }) => {
-    await page.goto('/')
+    await page.goto('/dashboard')
     await page.waitForLoadState('networkidle')
 
     // Confirm the seeded localStorage actually got read by the SPA. If not,
