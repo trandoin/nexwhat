@@ -286,11 +286,14 @@ function togglePlayAudio(type: 'hold_music' | 'ringback') {
                         <SelectValue :placeholder="$t('settings.selectTimezone')" />
                       </SelectTrigger>
                       <SelectContent class="bg-[#141414] border-white/[0.08] light:bg-white light:border-gray-200">
+                        <SelectItem value="Asia/Kolkata" class="text-white/70 focus:bg-white/[0.08] focus:text-white light:text-gray-700 light:focus:bg-gray-100">India (IST - Asia/Kolkata)</SelectItem>
                         <SelectItem value="UTC" class="text-white/70 focus:bg-white/[0.08] focus:text-white light:text-gray-700 light:focus:bg-gray-100">UTC</SelectItem>
-                        <SelectItem value="America/New_York" class="text-white/70 focus:bg-white/[0.08] focus:text-white light:text-gray-700 light:focus:bg-gray-100">Eastern Time</SelectItem>
-                        <SelectItem value="America/Los_Angeles" class="text-white/70 focus:bg-white/[0.08] focus:text-white light:text-gray-700 light:focus:bg-gray-100">Pacific Time</SelectItem>
-                        <SelectItem value="Europe/London" class="text-white/70 focus:bg-white/[0.08] focus:text-white light:text-gray-700 light:focus:bg-gray-100">London</SelectItem>
-                        <SelectItem value="Asia/Tokyo" class="text-white/70 focus:bg-white/[0.08] focus:text-white light:text-gray-700 light:focus:bg-gray-100">Tokyo</SelectItem>
+                        <SelectItem value="Asia/Dubai" class="text-white/70 focus:bg-white/[0.08] focus:text-white light:text-gray-700 light:focus:bg-gray-100">Dubai (GST - Asia/Dubai)</SelectItem>
+                        <SelectItem value="Asia/Singapore" class="text-white/70 focus:bg-white/[0.08] focus:text-white light:text-gray-700 light:focus:bg-gray-100">Singapore (SGT - Asia/Singapore)</SelectItem>
+                        <SelectItem value="America/New_York" class="text-white/70 focus:bg-white/[0.08] focus:text-white light:text-gray-700 light:focus:bg-gray-100">Eastern Time (America/New_York)</SelectItem>
+                        <SelectItem value="America/Los_Angeles" class="text-white/70 focus:bg-white/[0.08] focus:text-white light:text-gray-700 light:focus:bg-gray-100">Pacific Time (America/Los_Angeles)</SelectItem>
+                        <SelectItem value="Europe/London" class="text-white/70 focus:bg-white/[0.08] focus:text-white light:text-gray-700 light:focus:bg-gray-100">London (Europe/London)</SelectItem>
+                        <SelectItem value="Asia/Tokyo" class="text-white/70 focus:bg-white/[0.08] focus:text-white light:text-gray-700 light:focus:bg-gray-100">Tokyo (Asia/Tokyo)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
