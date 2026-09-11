@@ -142,6 +142,10 @@ const router = createRouter({
       meta: { requiresAuth: true },
       children: [
         {
+          path: '',
+          redirect: '/dashboard'
+        },
+        {
           path: 'dashboard',
           name: 'dashboard',
           component: () => import('@/views/dashboard/DashboardView.vue'),
@@ -509,6 +513,9 @@ router.beforeEach((to, _from, next) => {
 
   // Handle public landing page (root path '/' or route named 'landing')
   if (to.path === '/' || to.name === 'landing') {
+    if (authStore.isAuthenticated) {
+      return next({ path: getFirstAccessibleRoute(authStore) })
+    }
     return next()
   }
 
