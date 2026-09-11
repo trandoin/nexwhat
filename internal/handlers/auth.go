@@ -3,10 +3,12 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/shridarpatil/whatomate/internal/database"
 	"github.com/shridarpatil/whatomate/internal/middleware"
 	"github.com/shridarpatil/whatomate/internal/models"
 	"github.com/valyala/fasthttp"
@@ -22,10 +24,11 @@ type LoginRequest struct {
 
 // RegisterRequest represents registration data
 type RegisterRequest struct {
-	Email          string    `json:"email" validate:"required,email"`
-	Password       string    `json:"password" validate:"required,min=12"`
-	FullName       string    `json:"full_name" validate:"required"`
-	OrganizationID uuid.UUID `json:"organization_id" validate:"required"`
+	Email          string     `json:"email" validate:"required,email"`
+	Password       string     `json:"password" validate:"required,min=8"`
+	FullName       string     `json:"full_name" validate:"required"`
+	OrganizationID *uuid.UUID `json:"organization_id"`
+	CompanyName    string     `json:"company_name"`
 }
 
 // CookieAuthResponse represents authentication response when tokens are in cookies.
@@ -106,27 +109,163 @@ func (a *App) Login(r *fastglue.Request) error {
 	})
 }
 
-// Register creates a new user in an existing organization
+// Register creates a new user in an existing organization or provisions a new tenant organization
 func (a *App) Register(r *fastglue.Request) error {
 	var req RegisterRequest
 	if err := a.decodeRequest(r, &req); err != nil {
 		return nil
 	}
 
-	if req.OrganizationID == uuid.Nil {
-		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, "organization_id is required", nil, "")
+	req.Email = strings.TrimSpace(req.Email)
+	req.FullName = strings.TrimSpace(req.FullName)
+	req.CompanyName = strings.TrimSpace(req.CompanyName)
+
+	if req.Email == "" || req.Password == "" || req.FullName == "" {
+		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, "Full name, email, and password are required", nil, "")
 	}
+
+	if len(req.Password) < 8 {
+		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, "Password must be at least 8 characters", nil, "")
+	}
+
+	// Case 1: Self-service SaaS registration with a new Organization/Company
+	if req.OrganizationID == nil || *req.OrganizationID == uuid.Nil {
+		if req.CompanyName == "" {
+			return r.SendErrorEnvelope(fasthttp.StatusBadRequest, "Company name is required for registration", nil, "")
+		}
+
+		// Check if email already exists
+		var existingUser models.User
+		if err := a.DB.Where("email = ?", req.Email).First(&existingUser).Error; err == nil {
+			return r.SendErrorEnvelope(fasthttp.StatusConflict, "An account with this email already exists. Please sign in.", nil, "")
+		}
+
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			a.Log.Error("Failed to hash password", "error", err)
+			return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to create account", nil, "")
+		}
+
+		tx := a.DB.Begin()
+		if tx.Error != nil {
+			a.Log.Error("Failed to begin transaction", "error", tx.Error)
+			return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to create account", nil, "")
+		}
+
+		// Provision tenant organization
+		org := models.Organization{
+			Name:     req.CompanyName,
+			Slug:     generateSlug(req.CompanyName),
+			Settings: models.JSONB{},
+		}
+		if err := tx.Create(&org).Error; err != nil {
+			tx.Rollback()
+			a.Log.Error("Failed to create organization", "error", err)
+			return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to create organization", nil, "")
+		}
+
+		// Seed system roles (admin, manager, agent)
+		if err := database.SeedSystemRolesForOrg(tx, org.ID); err != nil {
+			tx.Rollback()
+			a.Log.Error("Failed to seed system roles", "error", err, "org_id", org.ID)
+			return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to create organization", nil, "")
+		}
+
+		// Create default chatbot settings
+		chatbotSettings := models.ChatbotSettings{
+			OrganizationID:     org.ID,
+			IsEnabled:          false,
+			SessionTimeoutMins: 30,
+		}
+		if err := tx.Create(&chatbotSettings).Error; err != nil {
+			tx.Rollback()
+			a.Log.Error("Failed to create chatbot settings", "error", err, "org_id", org.ID)
+			return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to create organization", nil, "")
+		}
+
+		// Find admin role for this new tenant
+		var adminRole models.CustomRole
+		if err := tx.Where("organization_id = ? AND name = ? AND is_system = ?", org.ID, "admin", true).First(&adminRole).Error; err != nil {
+			tx.Rollback()
+			a.Log.Error("Failed to find admin role", "error", err, "org_id", org.ID)
+			return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to create organization", nil, "")
+		}
+
+		// Create user with admin role
+		user := models.User{
+			OrganizationID: org.ID,
+			Email:          req.Email,
+			PasswordHash:   string(hashedPassword),
+			FullName:       req.FullName,
+			RoleID:         &adminRole.ID,
+			IsActive:       true,
+		}
+		if err := tx.Create(&user).Error; err != nil {
+			tx.Rollback()
+			a.Log.Error("Failed to create user", "error", err, "email", req.Email, "org_id", org.ID)
+			return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to create account", nil, "")
+		}
+
+		userOrg := models.UserOrganization{
+			UserID:         user.ID,
+			OrganizationID: org.ID,
+			RoleID:         &adminRole.ID,
+			IsDefault:      true,
+		}
+		if err := tx.Create(&userOrg).Error; err != nil {
+			tx.Rollback()
+			a.Log.Error("Failed to create user organization entry", "error", err)
+			return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to create account", nil, "")
+		}
+
+		// Seed default dashboard widgets for creator
+		if err := database.SeedDefaultWidgetsForOrg(tx, org.ID, user.ID); err != nil {
+			tx.Rollback()
+			a.Log.Error("Failed to seed default widgets", "error", err, "org_id", org.ID)
+			return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to create organization", nil, "")
+		}
+
+		if err := tx.Commit().Error; err != nil {
+			a.Log.Error("Failed to commit transaction", "error", err)
+			return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to create account", nil, "")
+		}
+
+		a.Log.Info("Self-service SaaS registration completed", "user_id", user.ID, "org_id", org.ID, "company", org.Name)
+
+		user.Role = &adminRole
+
+		accessToken, err := a.generateAccessToken(&user)
+		if err != nil {
+			a.Log.Error("Failed to generate access token", "error", err)
+			return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to generate token", nil, "")
+		}
+		refreshToken, err := a.generateRefreshToken(&user)
+		if err != nil {
+			a.Log.Error("Failed to generate refresh token", "error", err)
+			return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to generate token", nil, "")
+		}
+
+		a.setAuthCookies(r, accessToken, refreshToken)
+
+		return r.SendEnvelope(CookieAuthResponse{
+			ExpiresIn: a.Config.JWT.AccessExpiryMins * 60,
+			User:      user,
+		})
+	}
+
+	// Case 2: Invitation-based registration with existing Organization
+	orgID := *req.OrganizationID
 
 	// Validate the organization exists
 	var org models.Organization
-	if err := a.DB.Where("id = ?", req.OrganizationID).First(&org).Error; err != nil {
+	if err := a.DB.Where("id = ?", orgID).First(&org).Error; err != nil {
 		return r.SendErrorEnvelope(fasthttp.StatusNotFound, "Organization not found", nil, "")
 	}
 
 	// Get the org's default role
 	var defaultRole models.CustomRole
-	if err := a.DB.Where("organization_id = ? AND is_default = ?", req.OrganizationID, true).First(&defaultRole).Error; err != nil {
-		if err := a.DB.Where("organization_id = ? AND name = ? AND is_system = ?", req.OrganizationID, "agent", true).First(&defaultRole).Error; err != nil {
+	if err := a.DB.Where("organization_id = ? AND is_default = ?", orgID, true).First(&defaultRole).Error; err != nil {
+		if err := a.DB.Where("organization_id = ? AND name = ? AND is_system = ?", orgID, "agent", true).First(&defaultRole).Error; err != nil {
 			a.Log.Error("Failed to find default role", "error", err)
 			return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to find default role", nil, "")
 		}
@@ -148,7 +287,7 @@ func (a *App) Register(r *fastglue.Request) error {
 		// Check if already a member of this org
 		var count int64
 		a.DB.Model(&models.UserOrganization{}).
-			Where("user_id = ? AND organization_id = ?", existingUser.ID, req.OrganizationID).
+			Where("user_id = ? AND organization_id = ?", existingUser.ID, orgID).
 			Count(&count)
 		if count > 0 {
 			return r.SendErrorEnvelope(fasthttp.StatusConflict, "You are already a member of this organization", nil, "")
@@ -157,7 +296,7 @@ func (a *App) Register(r *fastglue.Request) error {
 		// Add as member with default role
 		userOrg := models.UserOrganization{
 			UserID:         existingUser.ID,
-			OrganizationID: req.OrganizationID,
+			OrganizationID: orgID,
 			RoleID:         &defaultRole.ID,
 			IsDefault:      false,
 		}
@@ -166,10 +305,10 @@ func (a *App) Register(r *fastglue.Request) error {
 			return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to join organization", nil, "")
 		}
 
-		a.Log.Info("Existing user joined organization", "user_id", existingUser.ID, "org_id", req.OrganizationID)
+		a.Log.Info("Existing user joined organization", "user_id", existingUser.ID, "org_id", orgID)
 
 		// Set org context to the new org for token generation
-		existingUser.OrganizationID = req.OrganizationID
+		existingUser.OrganizationID = orgID
 		existingUser.Role = &defaultRole
 		existingUser.RoleID = &defaultRole.ID
 
@@ -209,7 +348,7 @@ func (a *App) Register(r *fastglue.Request) error {
 	}
 
 	user := models.User{
-		OrganizationID: req.OrganizationID,
+		OrganizationID: orgID,
 		Email:          req.Email,
 		PasswordHash:   string(hashedPassword),
 		FullName:       req.FullName,
@@ -219,13 +358,13 @@ func (a *App) Register(r *fastglue.Request) error {
 
 	if err := tx.Create(&user).Error; err != nil {
 		tx.Rollback()
-		a.Log.Error("Failed to create user", "error", err, "email", req.Email, "org_id", req.OrganizationID)
+		a.Log.Error("Failed to create user", "error", err, "email", req.Email, "org_id", orgID)
 		return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to create account", nil, "")
 	}
 
 	userOrg := models.UserOrganization{
 		UserID:         user.ID,
-		OrganizationID: req.OrganizationID,
+		OrganizationID: orgID,
 		RoleID:         &defaultRole.ID,
 		IsDefault:      true,
 	}
@@ -240,7 +379,7 @@ func (a *App) Register(r *fastglue.Request) error {
 		return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to create account", nil, "")
 	}
 
-	a.Log.Info("Registration completed", "user_id", user.ID, "org_id", req.OrganizationID)
+	a.Log.Info("Registration completed", "user_id", user.ID, "org_id", orgID)
 
 	user.Role = &defaultRole
 

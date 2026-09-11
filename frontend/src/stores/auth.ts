@@ -131,7 +131,8 @@ export const useAuthStore = defineStore('auth', () => {
     email: string
     password: string
     full_name: string
-    organization_id: string
+    organization_id?: string
+    company_name?: string
   }): Promise<void> {
     const response = await api.post('/auth/register', data)
     setAuth({ user: response.data.data.user })
