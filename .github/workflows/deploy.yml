@@ -1,4 +1,4 @@
-name: CI/CD Deploy to VM
+name: CI/CD Pipeline
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-container:
-    name: Build & Push Image
+  build:
+    name: Build Image
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -44,9 +44,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy-vm:
-    name: Deploy to VM
-    needs: build-container
+  deploy:
+    name: Deploy to Server
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - name: Deploy via SSH
