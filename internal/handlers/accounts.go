@@ -574,7 +574,8 @@ func (a *App) ExchangeToken(r *fastglue.Request) error {
 	}
 
 	var req struct {
-		Code               string `json:"code" validate:"required"`
+		Code               string `json:"code"`
+		AccessToken        string `json:"access_token"`
 		PhoneID            string `json:"phone_id"` // Optional: Discovered via token if missing
 		WABAID             string `json:"waba_id"`  // Optional: Discovered via token if missing
 		Name               string `json:"name"`
@@ -587,10 +588,12 @@ func (a *App) ExchangeToken(r *fastglue.Request) error {
 	a.Log.Info("Received embedded signup exchange token request",
 		"phone_id", req.PhoneID,
 		"waba_id", req.WABAID,
+		"has_code", req.Code != "",
+		"has_token", req.AccessToken != "",
 		"organization_id", orgID)
 
-	if req.Code == "" {
-		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, "Code is required", nil, "")
+	if req.Code == "" && req.AccessToken == "" {
+		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, "Authorization code or access_token is required", nil, "")
 	}
 
 	// 1. Resolve Meta credentials for this org
@@ -599,15 +602,22 @@ func (a *App) ExchangeToken(r *fastglue.Request) error {
 		return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to resolve credentials", nil, "")
 	}
 
-	// 2. Exchange code for user access token using WhatsApp service
 	ctx := context.Background()
-	a.Log.Info("Exchanging code for access token")
+	var accessToken string
 
-	accessToken, err := a.WhatsApp.ExchangeCodeForToken(ctx, req.Code,
-		appID, appSecret, a.Config.WhatsApp.APIVersion)
-	if err != nil {
-		a.Log.Error("Failed to exchange token", "error", err)
-		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, err.Error(), nil, "")
+	if req.AccessToken != "" {
+		a.Log.Info("Using directly supplied access token for account auto-discovery")
+		accessToken = req.AccessToken
+	} else {
+		// 2. Exchange code for user access token using WhatsApp service
+		a.Log.Info("Exchanging code for access token")
+		tkn, err := a.WhatsApp.ExchangeCodeForToken(ctx, req.Code,
+			appID, appSecret, a.Config.WhatsApp.APIVersion)
+		if err != nil {
+			a.Log.Error("Failed to exchange token", "error", err)
+			return r.SendErrorEnvelope(fasthttp.StatusBadRequest, err.Error(), nil, "")
+		}
+		accessToken = tkn
 	}
 
 	// DISCOVERY: If IDs are missing, try to find them using the token
@@ -692,35 +702,44 @@ func (a *App) discoverWABAAndPhone(ctx context.Context, orgID uuid.UUID, accessT
 		return "", "", "", err
 	}
 
-	appAccessToken := fmt.Sprintf("%s|%s", appID, appSecret)
-
-	debugInfo, err := a.WhatsApp.GetTokenDebugInfo(ctx, accessToken, appAccessToken)
-	if err != nil {
-		a.Log.Error("Failed to debug token", "error", err)
-		return "", "", "", fmt.Errorf("failed to validate token details: %w", err)
-	}
-
-	// 2. Find WABA ID from Granular Scopes
 	var discoveredWABAID string
-	for _, scope := range debugInfo.GranularScopes {
-		if scope.Scope == "whatsapp_business_management" {
-			if len(scope.TargetIds) > 0 {
-				discoveredWABAID = scope.TargetIds[0]
-				break
+
+	if appID != "" && appSecret != "" {
+		appAccessToken := fmt.Sprintf("%s|%s", appID, appSecret)
+		debugInfo, err := a.WhatsApp.GetTokenDebugInfo(ctx, accessToken, appAccessToken)
+		if err == nil && debugInfo != nil {
+			for _, scope := range debugInfo.GranularScopes {
+				if scope.Scope == "whatsapp_business_management" {
+					if len(scope.TargetIds) > 0 {
+						discoveredWABAID = scope.TargetIds[0]
+						break
+					}
+				}
 			}
+		} else if err != nil {
+			a.Log.Warn("Token debug inspection returned error, falling back to /me/accounts", "error", err)
 		}
 	}
 
 	if discoveredWABAID == "" {
-		a.Log.Warn("No WABA ID found in granular scopes, falling back to /me/accounts strategy")
+		a.Log.Info("Attempting WABA discovery via /me/accounts strategy")
 		sharedInfo, err := a.WhatsApp.GetSharedWABA(ctx, accessToken)
 		if err == nil && len(sharedInfo.Data) > 0 {
 			discoveredWABAID = sharedInfo.Data[0].ID
+			if phoneID == "" && len(sharedInfo.Data[0].Phone.Data) > 0 {
+				p := sharedInfo.Data[0].Phone.Data[0]
+				phoneID = p.ID
+				if name == "" {
+					name = fmt.Sprintf("%s (%s)", p.VerifiedName, p.DisplayPhoneNumber)
+				}
+			}
+		} else if err != nil {
+			a.Log.Warn("Failed to fetch /me/accounts", "error", err)
 		}
 	}
 
 	if discoveredWABAID == "" {
-		return "", "", "", fmt.Errorf("could not discover WhatsApp Business Account ID from token")
+		return "", "", "", fmt.Errorf("could not discover WhatsApp Business Account ID from token. Please verify token permissions")
 	}
 
 	wabaID = discoveredWABAID
@@ -967,3 +986,56 @@ func (a *App) encryptAccountSecrets(account *models.WhatsAppAccount) error {
 	return crypto.EncryptFields(a.Config.App.EncryptionKey,
 		&account.AccessToken, &account.AppSecret, &account.Pin)
 }
+
+// RequestAssistedSetup allows customer organizations to request concierge WhatsApp linking assistance
+func (a *App) RequestAssistedSetup(r *fastglue.Request) error {
+	orgID, userID, err := a.requireAuth(r, models.ResourceAccounts, models.ActionWrite)
+	if err != nil {
+		return nil
+	}
+
+	var req struct {
+		BusinessName   string `json:"business_name"`
+		PhoneNumber    string `json:"phone_number"`
+		ContactChannel string `json:"contact_channel"`
+		PreferredSlot  string `json:"preferred_slot"`
+		Notes          string `json:"notes"`
+	}
+	if err := a.decodeRequest(r, &req); err != nil {
+		return nil
+	}
+
+	var org models.Organization
+	if err := a.DB.Where("id = ?", orgID).First(&org).Error; err != nil {
+		return r.SendErrorEnvelope(fasthttp.StatusNotFound, "Organization not found", nil, "")
+	}
+
+	if org.Settings == nil {
+		org.Settings = make(models.JSONB)
+	}
+
+	org.Settings["assisted_setup_request"] = map[string]any{
+		"business_name":   req.BusinessName,
+		"phone_number":    req.PhoneNumber,
+		"contact_channel": req.ContactChannel,
+		"preferred_slot":  req.PreferredSlot,
+		"notes":           req.Notes,
+		"status":          "pending",
+		"requested_by":    userID.String(),
+	}
+
+	if err := a.DB.Model(&org).Update("settings", org.Settings).Error; err != nil {
+		a.Log.Error("Failed to update org setup request", "error", err)
+		return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to record setup request", nil, "")
+	}
+
+	a.Log.Info("Customer requested concierge WhatsApp setup",
+		"org_id", orgID, "business", req.BusinessName, "phone", req.PhoneNumber)
+
+	return r.SendEnvelope(map[string]any{
+		"success": true,
+		"message": "Concierge setup request received. A specialist will assist you within 10 minutes.",
+		"request": org.Settings["assisted_setup_request"],
+	})
+}
+

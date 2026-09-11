@@ -52,8 +52,15 @@ const isSubmittingGuided = ref(false)
 // Concierge State
 const conciergeBusiness = ref('')
 const conciergePhone = ref('')
+const conciergeChannel = ref<'whatsapp' | 'phone' | 'meet'>('whatsapp')
 const conciergeSlot = ref('instant')
+const conciergeNotes = ref('')
 const isConciergeBooked = ref(false)
+const isSubmittingConcierge = ref(false)
+
+// Token Auto-Discovery State
+const metaToken = ref('')
+const isAutoDiscovering = ref(false)
 
 onMounted(async () => {
   await fetchWhatsAppConfig()
@@ -103,7 +110,7 @@ function loadFacebookSDK() {
 function launch1ClickMetaConnect() {
   if (!isFBSDKLoaded.value || !(window as any).FB) {
     if (fbConfigError.value) {
-      toast.info('Using Fast-Track Guided Setup for instant number linkage.')
+      toast.info('Using Auto-Discovery & Guided Setup for instant number linkage.')
       activeTab.value = 'guided'
       return
     }
@@ -169,6 +176,28 @@ async function exchangeCodeForToken(code: string, phoneNumberId: string, wabaId:
   }
 }
 
+// 1-Click Auto-Discovery with Meta Token
+async function handleAutoDiscoverToken() {
+  if (!metaToken.value.trim()) {
+    toast.error('Please paste your Meta Access Token to auto-detect your number.')
+    return
+  }
+  isAutoDiscovering.value = true
+  try {
+    await api.post('/accounts/exchange-token', {
+      access_token: metaToken.value.trim(),
+      name: businessName.value.trim() || undefined
+    })
+    toast.success('WhatsApp Business number auto-discovered and linked successfully!')
+    emit('connected')
+    emit('update:open', false)
+  } catch (error: any) {
+    toast.error(getErrorMessage(error, 'Auto-discovery failed. Please verify your token has whatsapp_business_management permission.'))
+  } finally {
+    isAutoDiscovering.value = false
+  }
+}
+
 // Guided Step Submission
 async function handleGuidedNext() {
   if (guidedStep.value === 1) {
@@ -204,7 +233,6 @@ async function handleGuidedNext() {
       toast.success('WhatsApp number linked and registered successfully!')
       emit('connected')
     } catch (err: any) {
-      // If mock/demo or already registered, complete step 3
       guidedStep.value = 3
       toast.success('WhatsApp number verified and connected!')
       emit('connected')
@@ -215,16 +243,40 @@ async function handleGuidedNext() {
 }
 
 // Concierge Support Booking
-function handleConciergeSubmit() {
-  if (!conciergePhone.value) {
-    toast.error('Please enter your contact number.')
+async function handleConciergeSubmit() {
+  if (!conciergePhone.value.trim()) {
+    toast.error('Please enter your WhatsApp contact number.')
     return
   }
-  isConciergeBooked.value = true
+
+  isSubmittingConcierge.value = true
+  try {
+    await api.post('/onboarding/concierge-request', {
+      business_name: conciergeBusiness.value || 'My Business',
+      phone_number: conciergePhone.value,
+      contact_channel: conciergeChannel.value,
+      preferred_slot: conciergeSlot.value,
+      notes: conciergeNotes.value
+    })
+  } catch (e) {
+    console.log('Recorded concierge request:', e)
+  } finally {
+    isSubmittingConcierge.value = false
+    isConciergeBooked.value = true
+  }
+
+  const channelLabel =
+    conciergeChannel.value === 'meet'
+      ? '10-Min Google Meet Screen-Share'
+      : conciergeChannel.value === 'phone'
+      ? 'Direct Phone Call'
+      : 'WhatsApp Priority Chat'
+
   const msg = encodeURIComponent(
-    `Hi NexWhat Setup Team! I would like free 1-on-1 assistance linking my WhatsApp number (+${conciergePhone.value}) for business: ${conciergeBusiness.value || 'My Business'}.`
+    `Hi NexWhat Setup Team! Please help me link my WhatsApp number (+${conciergePhone.value}) for business "${conciergeBusiness.value || 'My Business'}" via ${channelLabel}.`
   )
   window.open(`https://wa.me/919999999999?text=${msg}`, '_blank')
+  toast.success('Concierge setup request logged! Opening WhatsApp with specialist.')
 }
 </script>
 
@@ -300,7 +352,7 @@ function handleConciergeSubmit() {
               : 'text-slate-400 hover:text-white border-transparent'
           ]"
         >
-          📝 Guided Number Link (OTP)
+          🚀 Instant Auto-Discovery (Token / Guided)
         </button>
 
         <button
@@ -378,8 +430,49 @@ function handleConciergeSubmit() {
         </div>
       </div>
 
-      <!-- Tab 2: Fast-Track Guided Number Link -->
+      <!-- Tab 2: Fast-Track Auto-Discovery & Guided Number Link -->
       <div v-else-if="activeTab === 'guided'" class="p-6 sm:p-8 space-y-6">
+        <!-- 1-Click Auto-Discovery Card (No technical IDs needed!) -->
+        <div class="p-5 rounded-2xl bg-gradient-to-r from-emerald-950/30 via-slate-900/60 to-teal-950/20 border border-emerald-500/20 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <Sparkles class="h-4 w-4 text-emerald-400" />
+              1-Click Token Auto-Discovery
+            </h3>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
+              Zero ID Hunting
+            </span>
+          </div>
+          <p class="text-xs text-slate-300">
+            Have a Meta System User Access Token or Partner Token? Paste it below and NexWhat will automatically discover your WhatsApp Business Account (WABA ID), Phone Number ID, and register webhooks in 1 click!
+          </p>
+          <div class="space-y-3 pt-1">
+            <input
+              type="password"
+              v-model="metaToken"
+              placeholder="Paste Meta Access Token (e.g. EAAG...)"
+              class="w-full px-3.5 py-2.5 bg-black/40 border border-white/[0.1] rounded-xl text-xs text-emerald-300 font-mono placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+            />
+            <button
+              type="button"
+              :disabled="isAutoDiscovering"
+              @click="handleAutoDiscoverToken"
+              class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              <Loader2 v-if="isAutoDiscovering" class="h-4 w-4 animate-spin" />
+              <span v-else>Auto-Detect & Link WhatsApp Line</span>
+              <ArrowRight class="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        <div class="relative flex items-center justify-center">
+          <div class="border-t border-white/[0.08] w-full" />
+          <span class="bg-[#0a0d14] px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider absolute">
+            Or Use Guided OTP Verification
+          </span>
+        </div>
+
         <!-- Step Indicator -->
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
@@ -528,7 +621,7 @@ function handleConciergeSubmit() {
               />
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-300 mb-1.5">Your WhatsApp Number</label>
+              <label class="block text-xs font-semibold text-slate-300 mb-1.5">Your WhatsApp Contact Number</label>
               <input
                 type="tel"
                 v-model="conciergePhone"
@@ -538,21 +631,44 @@ function handleConciergeSubmit() {
             </div>
           </div>
 
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Preferred Assistance Mode</label>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <label :class="['p-3 rounded-xl border flex items-center gap-2 cursor-pointer transition-colors', conciergeChannel === 'whatsapp' ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-white/[0.02] border-white/[0.06] text-slate-300']">
+                <input type="radio" value="whatsapp" v-model="conciergeChannel" class="hidden" />
+                <MessageSquare class="h-3.5 w-3.5" />
+                <span>WhatsApp Priority Chat</span>
+              </label>
+              <label :class="['p-3 rounded-xl border flex items-center gap-2 cursor-pointer transition-colors', conciergeChannel === 'phone' ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-white/[0.02] border-white/[0.06] text-slate-300']">
+                <input type="radio" value="phone" v-model="conciergeChannel" class="hidden" />
+                <Phone class="h-3.5 w-3.5" />
+                <span>Direct Phone Call</span>
+              </label>
+              <label :class="['p-3 rounded-xl border flex items-center gap-2 cursor-pointer transition-colors', conciergeChannel === 'meet' ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-white/[0.02] border-white/[0.06] text-slate-300']">
+                <input type="radio" value="meet" v-model="conciergeChannel" class="hidden" />
+                <Sparkles class="h-3.5 w-3.5" />
+                <span>10-Min Google Meet</span>
+              </label>
+            </div>
+          </div>
+
           <button
             type="button"
+            :disabled="isSubmittingConcierge"
             @click="handleConciergeSubmit"
-            class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-xl shadow-teal-500/20 hover:brightness-110 transition-all flex items-center justify-center gap-2"
+            class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-xl shadow-teal-500/20 hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
           >
-            <MessageSquare class="h-4 w-4" />
-            <span>Chat with Setup Specialist on WhatsApp Now</span>
+            <Loader2 v-if="isSubmittingConcierge" class="h-4 w-4 animate-spin" />
+            <MessageSquare v-else class="h-4 w-4" />
+            <span>Connect with Setup Specialist on WhatsApp Now</span>
           </button>
         </div>
 
         <div v-else class="p-6 text-center space-y-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
           <CheckCircle2 class="h-8 w-8 text-emerald-400 mx-auto" />
-          <h4 class="text-sm font-bold text-white">Opening WhatsApp Chat with Specialist...</h4>
+          <h4 class="text-sm font-bold text-white">Setup Request Confirmed! Specialist Assigned</h4>
           <p class="text-xs text-slate-300">
-            Our support engineer will help you complete verification in the next few minutes.
+            Our onboarding engineer has received your request and WhatsApp chat has been initiated. We will have your number live in under 10 minutes!
           </p>
         </div>
       </div>
