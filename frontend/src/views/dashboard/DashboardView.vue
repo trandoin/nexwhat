@@ -65,17 +65,24 @@ import {
   Zap,
   Shield,
   LineChart,
-  Tags
+  Tags,
+  ArrowRight,
+  CheckCircle2
 } from 'lucide-vue-next'
 // Centralized Chart.js setup (registered once)
 import { Line, Bar, Pie } from '@/lib/charts'
 import { DateRangePicker } from '@/components/shared'
 import { useDateRange } from '@/composables/useDateRange'
 import { useAppToast } from '@/composables/useAppToast'
+import WhatsAppLinkingWizard from '@/components/onboarding/WhatsAppLinkingWizard.vue'
 
 const { success, error: showError } = useAppToast()
 const { t } = useI18n()
 const authStore = useAuthStore()
+
+// Onboarding Wizard State
+const isWhatsAppWizardOpen = ref(false)
+const showOnboardingHero = ref(true)
 
 // Permission checks
 const canCreateWidget = computed(() => authStore.hasPermission('analytics', 'write'))
@@ -750,9 +757,156 @@ onMounted(() => {
     <!-- Content -->
     <ScrollArea class="flex-1">
       <div class="p-6 space-y-6">
+        <!-- AiSensy-style Onboarding Hero Card: Start WhatsApp Marketing in 10 Minutes -->
+        <div
+          v-if="showOnboardingHero"
+          class="relative rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-emerald-950/50 via-[#0e1422] to-teal-950/40 border border-emerald-500/25 shadow-2xl overflow-hidden"
+        >
+          <div class="absolute -right-16 -top-16 w-64 h-64 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
+          <button
+            @click="showOnboardingHero = false"
+            class="absolute top-4 right-4 h-7 w-7 rounded-full bg-white/[0.05] hover:bg-white/[0.1] text-slate-400 hover:text-white flex items-center justify-center transition-colors"
+            title="Dismiss banner"
+          >
+            <X class="h-3.5 w-3.5" />
+          </button>
+
+          <div class="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+            <div class="space-y-4 max-w-2xl">
+              <div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                  Start WhatsApp Marketing in 10 Minutes
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-300 mt-1.5 leading-relaxed">
+                  NexWhat Platform is powered by Official WhatsApp Business APIs and is in direct alignment with all WhatsApp Rules.
+                </p>
+              </div>
+
+              <div class="space-y-2.5">
+                <div class="flex items-start gap-2.5 text-xs text-slate-200">
+                  <CheckCircle2 class="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    <strong class="text-white">Official Green Tick Verification:</strong> Get Verified Green Tick on your WhatsApp & Broadcast Unlimited Notifications everyday.
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-2.5 text-xs text-slate-200">
+                  <CheckCircle2 class="h-4 w-4 text-teal-400 shrink-0 mt-0.5" />
+                  <div>
+                    <strong class="text-white">Dedicated Live Chat Support:</strong> Priority Chat Support by NexWhat Team over WhatsApp, Phone & Live Screen-Share.
+                  </div>
+                </div>
+
+                <div class="flex items-start gap-2.5 text-xs text-slate-200">
+                  <CheckCircle2 class="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
+                  <div>
+                    <strong class="text-white">Blazing Fast Feature Launches:</strong> 0% per-message markup, direct Meta billing, visual chatbots, and instant broadcast speeds.
+                  </div>
+                </div>
+              </div>
+
+              <div class="pt-2">
+                <button
+                  @click="isWhatsAppWizardOpen = true"
+                  class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-xl shadow-emerald-500/25 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+                >
+                  <span>Start Now for FREE</span>
+                  <ArrowRight class="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <!-- Preview Card Mockup -->
+            <div class="w-full lg:w-72 rounded-2xl bg-black/40 border border-white/[0.08] p-4 shadow-xl shrink-0">
+              <div class="flex items-center gap-2 mb-3 pb-2 border-b border-white/[0.06]">
+                <div class="h-7 w-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-xs">
+                  WA
+                </div>
+                <div class="min-w-0">
+                  <div class="text-xs font-bold text-white flex items-center gap-1 truncate">
+                    NexWhat Official
+                    <CheckCircle2 class="h-3.5 w-3.5 text-emerald-400 inline shrink-0" />
+                  </div>
+                  <div class="text-[10px] text-emerald-400">Verified Business Account</div>
+                </div>
+              </div>
+              <div class="space-y-2 text-[11px]">
+                <div class="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-200 border border-emerald-500/20">
+                  Hello! Your WhatsApp number is now connected. Ready to broadcast!
+                </div>
+                <div class="flex gap-1.5">
+                  <span class="px-2 py-1 rounded bg-white/[0.06] text-white text-[10px]">Track Order</span>
+                  <span class="px-2 py-1 rounded bg-white/[0.06] text-white text-[10px]">Talk to Agent</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bespoke Meta Cloud API Health & Operations Strip -->
+        <div class="rounded-2xl border border-white/[0.08] bg-gradient-to-r from-[#0d121f] via-[#090d16] to-[#0a141d] p-4 sm:p-5 shadow-2xl relative overflow-hidden">
+          <div class="absolute -right-12 -bottom-12 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 relative z-10">
+            <div class="flex items-center gap-3.5">
+              <div class="relative">
+                <div class="h-10 w-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-inner">
+                  <ShieldCheck class="h-5 w-5" />
+                </div>
+                <span class="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-sm font-bold text-white">Meta Cloud API Live Health</h3>
+                  <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    High Quality
+                  </span>
+                </div>
+                <p class="text-xs text-slate-400 mt-0.5">
+                  Direct Meta Billing active (0% surcharge) • 100k daily tier • Webhook listener online
+                </p>
+              </div>
+            </div>
+
+            <!-- Quick Action Dock -->
+            <div class="flex flex-wrap items-center gap-2">
+              <RouterLink
+                to="/campaigns"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-semibold shadow-lg shadow-emerald-500/20 transition-all"
+              >
+                <Send class="h-3.5 w-3.5" />
+                New Broadcast
+              </RouterLink>
+              <RouterLink
+                to="/flows"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-white text-xs font-medium border border-white/[0.08] transition-all"
+              >
+                <Workflow class="h-3.5 w-3.5 text-emerald-400" />
+                Visual Flow Builder
+              </RouterLink>
+              <RouterLink
+                to="/templates"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-white text-xs font-medium border border-white/[0.08] transition-all"
+              >
+                <FileText class="h-3.5 w-3.5 text-teal-400" />
+                Meta Templates
+              </RouterLink>
+              <RouterLink
+                to="/chat"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-white text-xs font-medium border border-white/[0.08] transition-all"
+              >
+                <MessageSquare class="h-3.5 w-3.5 text-cyan-400" />
+                Team Inbox
+              </RouterLink>
+            </div>
+          </div>
+        </div>
+
         <!-- Loading Skeleton -->
         <div v-if="isLoading" class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div v-for="i in 4" :key="i" class="rounded-xl border border-white/[0.08] bg-white/[0.02] p-6 light:bg-white light:border-gray-200">
+          <div v-for="i in 4" :key="i" class="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 light:bg-white light:border-gray-200">
             <div class="flex flex-row items-center justify-between space-y-0 pb-2">
               <Skeleton class="h-4 w-24 bg-white/[0.08] light:bg-gray-200" />
               <Skeleton class="h-10 w-10 rounded-lg bg-white/[0.08] light:bg-gray-200" />
@@ -792,7 +946,7 @@ onMounted(() => {
             <!-- Number widget card -->
             <div
               v-if="getWidgetById(item.i) && isNumberWidget(getWidgetById(item.i)!)"
-              class="group relative h-full card-depth rounded-xl border border-white/[0.08] bg-white/[0.04] p-6 light:bg-white light:border-gray-200 hover:bg-white/[0.06] light:hover:bg-gray-50 transition-colors overflow-hidden"
+              class="group relative h-full card-depth rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#121624] via-[#0d111c] to-[#090b12] p-6 light:bg-white light:border-gray-200 hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-950/20 transition-all overflow-hidden"
             >
               <!-- Gradient accent bar -->
               <div :class="['absolute top-0 inset-x-0 h-0.5', getWidgetColor(getWidgetById(item.i)!.color).gradient]" />
@@ -869,7 +1023,7 @@ onMounted(() => {
             <!-- Chart widget card -->
             <div
               v-else-if="getWidgetById(item.i) && isChartWidget(getWidgetById(item.i)!)"
-              class="group relative h-full flex flex-col card-depth rounded-xl border border-white/[0.08] bg-white/[0.04] p-6 light:bg-white light:border-gray-200 hover:bg-white/[0.06] light:hover:bg-gray-50 transition-colors overflow-hidden"
+              class="group relative h-full flex flex-col card-depth rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#121624] via-[#0d111c] to-[#090b12] p-6 light:bg-white light:border-gray-200 hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-950/20 transition-all overflow-hidden"
             >
               <!-- Drag handle indicator -->
               <div v-if="isDragMode" class="widget-drag-handle absolute top-2 left-2 text-white/20 light:text-gray-300 cursor-grab active:cursor-grabbing z-10">
@@ -929,7 +1083,7 @@ onMounted(() => {
             <!-- Table widget card -->
             <div
               v-else-if="getWidgetById(item.i) && isTableWidget(getWidgetById(item.i)!)"
-              class="group relative h-full flex flex-col card-depth rounded-xl border border-white/[0.08] bg-white/[0.04] light:bg-white light:border-gray-200 hover:bg-white/[0.06] light:hover:bg-gray-50 transition-colors overflow-hidden"
+              class="group relative h-full flex flex-col card-depth rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#121624] via-[#0d111c] to-[#090b12] light:bg-white light:border-gray-200 hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-950/20 transition-all overflow-hidden"
             >
               <!-- Drag handle -->
               <div v-if="isDragMode" class="widget-drag-handle absolute top-2 left-2 text-white/20 light:text-gray-300 cursor-grab active:cursor-grabbing z-10">
@@ -1037,7 +1191,7 @@ onMounted(() => {
             <!-- Shortcuts widget card -->
             <div
               v-else-if="getWidgetById(item.i) && isShortcutsWidget(getWidgetById(item.i)!)"
-              class="group relative h-full flex flex-col card-depth rounded-xl border border-white/[0.08] bg-white/[0.04] light:bg-white light:border-gray-200 hover:bg-white/[0.06] light:hover:bg-gray-50 transition-colors overflow-hidden"
+              class="group relative h-full flex flex-col card-depth rounded-2xl border border-white/[0.08] bg-gradient-to-b from-[#121624] via-[#0d111c] to-[#090b12] light:bg-white light:border-gray-200 hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-950/20 transition-all overflow-hidden"
             >
               <!-- Drag handle -->
               <div v-if="isDragMode" class="widget-drag-handle absolute top-2 left-2 text-white/20 light:text-gray-300 cursor-grab active:cursor-grabbing z-10">
@@ -1362,6 +1516,12 @@ onMounted(() => {
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <!-- WhatsApp Onboarding & Linking Wizard -->
+    <WhatsAppLinkingWizard
+      v-model:open="isWhatsAppWizardOpen"
+      @connected="fetchDashboardData"
+    />
   </div>
 </template>
 

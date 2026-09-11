@@ -41,6 +41,54 @@ const router = createRouter({
       meta: { requiresAuth: false }
     },
     {
+      path: '/privacy',
+      name: 'privacy-policy',
+      component: () => import('@/views/pages/PrivacyPolicyView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/terms',
+      name: 'terms-conditions',
+      component: () => import('@/views/pages/TermsConditionsView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/refund',
+      name: 'refund-policy',
+      component: () => import('@/views/pages/RefundPolicyView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/about',
+      name: 'about-us',
+      component: () => import('@/views/pages/AboutUsView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/services/broadcast',
+      name: 'service-broadcast',
+      component: () => import('@/views/pages/services/BroadcastView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/services/chatbot',
+      name: 'service-chatbot',
+      component: () => import('@/views/pages/services/ChatbotView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/services/calling',
+      name: 'service-calling',
+      component: () => import('@/views/pages/services/CallingView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/services/inbox',
+      name: 'service-inbox',
+      component: () => import('@/views/pages/services/InboxView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
       path: '',
       component: () => import('@/components/layout/AppLayout.vue'),
       meta: { requiresAuth: true },

@@ -38,13 +38,13 @@ const competitorCost = computed(() => {
 })
 
 const nexwhatCost = computed(() => {
-  // NexWhat fixed subscription + direct Meta (zero markup)
-  const basePlan = isAnnual.value ? 1999 : 2499
+  // NexWhat fixed subscription (Growth tier) + direct Meta (zero markup)
+  const basePlan = isAnnual.value ? 479 : 599
   return basePlan
 })
 
 const monthlySavings = computed(() => {
-  const competitorMarkupOnly = Math.round(messagesPerMonth.value * 0.18) + (5500 - (isAnnual.value ? 1999 : 2499))
+  const competitorMarkupOnly = Math.round(messagesPerMonth.value * 0.18) + (3500 - (isAnnual.value ? 479 : 599))
   return Math.max(0, competitorMarkupOnly)
 })
 
@@ -167,12 +167,14 @@ const faqs = [
         </RouterLink>
 
         <!-- Nav Links (Desktop) -->
-        <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-white/70">
-          <a href="#features" class="hover:text-emerald-400 transition-colors">Features</a>
+        <nav class="hidden lg:flex items-center gap-6 text-sm font-medium text-white/70">
+          <RouterLink to="/services/broadcast" class="hover:text-emerald-400 transition-colors">Broadcasts</RouterLink>
+          <RouterLink to="/services/chatbot" class="hover:text-emerald-400 transition-colors">Chatbots</RouterLink>
+          <RouterLink to="/services/calling" class="hover:text-emerald-400 transition-colors">Voice Calling</RouterLink>
+          <RouterLink to="/services/inbox" class="hover:text-emerald-400 transition-colors">Team Inbox</RouterLink>
           <a href="#direct-billing" class="hover:text-emerald-400 transition-colors">Zero Markup</a>
-          <a href="#calculator" class="hover:text-emerald-400 transition-colors">ROI Calculator</a>
           <a href="#pricing" class="hover:text-emerald-400 transition-colors">Pricing</a>
-          <a href="#faq" class="hover:text-emerald-400 transition-colors">FAQ</a>
+          <RouterLink to="/about" class="hover:text-emerald-400 transition-colors">About Us</RouterLink>
         </nav>
 
         <!-- Header Actions -->
@@ -628,12 +630,12 @@ const faqs = [
 
         <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
           <!-- Starter Plan -->
-          <div class="p-8 rounded-3xl bg-white/[0.02] border border-white/[0.08] flex flex-col justify-between">
+          <div class="p-8 rounded-3xl bg-white/[0.02] border border-white/[0.08] flex flex-col justify-between hover:border-white/20 transition-all">
             <div>
               <div class="text-lg font-bold text-white mb-2">Starter</div>
               <p class="text-xs text-white/50 mb-6">For startups and small stores launching WhatsApp marketing.</p>
               <div class="flex items-baseline gap-1 mb-6">
-                <span class="text-4xl font-extrabold text-white">₹{{ isAnnual ? '799' : '999' }}</span>
+                <span class="text-4xl font-extrabold text-white">₹{{ isAnnual ? '239' : '299' }}</span>
                 <span class="text-xs text-white/40">/ month</span>
               </div>
 
@@ -652,7 +654,7 @@ const faqs = [
                 </li>
                 <li class="flex items-center gap-2">
                   <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>Broadcast Campaigns & Analytics</span>
+                  <span>Broadcast Campaigns & CSV Imports</span>
                 </li>
                 <li class="flex items-center gap-2">
                   <CheckCircle2 class="h-4 w-4 text-emerald-400" />
@@ -679,7 +681,7 @@ const faqs = [
               <div class="text-lg font-bold text-white mb-2">Growth</div>
               <p class="text-xs text-white/50 mb-6">For scaling D2C, ecommerce, and high-growth businesses.</p>
               <div class="flex items-baseline gap-1 mb-6">
-                <span class="text-4xl font-extrabold text-white">₹{{ isAnnual ? '1,999' : '2,499' }}</span>
+                <span class="text-4xl font-extrabold text-white">₹{{ isAnnual ? '479' : '599' }}</span>
                 <span class="text-xs text-white/40">/ month</span>
               </div>
 
@@ -702,7 +704,7 @@ const faqs = [
                 </li>
                 <li class="flex items-center gap-2">
                   <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>WhatsApp Voice Calling (IVR)</span>
+                  <span>WhatsApp Voice Calling & IVR</span>
                 </li>
                 <li class="flex items-center gap-2">
                   <CheckCircle2 class="h-4 w-4 text-emerald-400" />
@@ -719,36 +721,36 @@ const faqs = [
             </RouterLink>
           </div>
 
-          <!-- Enterprise Plan -->
-          <div class="p-8 rounded-3xl bg-white/[0.02] border border-white/[0.08] flex flex-col justify-between">
+          <!-- Pro Plan (Max 999) -->
+          <div class="p-8 rounded-3xl bg-white/[0.02] border border-white/[0.08] flex flex-col justify-between hover:border-white/20 transition-all">
             <div>
-              <div class="text-lg font-bold text-white mb-2">Enterprise</div>
-              <p class="text-xs text-white/50 mb-6">For agencies and large brands with custom high-volume needs.</p>
+              <div class="text-lg font-bold text-white mb-2">Pro Max</div>
+              <p class="text-xs text-white/50 mb-6">Unlimited scale for demanding high-volume operations.</p>
               <div class="flex items-baseline gap-1 mb-6">
-                <span class="text-4xl font-extrabold text-white">₹{{ isAnnual ? '4,799' : '5,999' }}</span>
+                <span class="text-4xl font-extrabold text-white">₹{{ isAnnual ? '799' : '999' }}</span>
                 <span class="text-xs text-white/40">/ month</span>
               </div>
 
               <ul class="space-y-3 text-xs text-white/70 mb-8">
                 <li class="flex items-center gap-2">
                   <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>Unlimited WhatsApp Numbers</span>
+                  <span>5 WhatsApp Business Numbers</span>
                 </li>
                 <li class="flex items-center gap-2">
                   <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>Unlimited Contacts & Campaigns</span>
+                  <span>Unlimited Contacts & Broadcasts</span>
                 </li>
                 <li class="flex items-center gap-2">
                   <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>Unlimited Team Agent Seats</span>
+                  <span>15 Team Agent Seats</span>
                 </li>
                 <li class="flex items-center gap-2">
                   <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>Dedicated Webhook Endpoints</span>
+                  <span>Custom Inbound Webhooks</span>
                 </li>
                 <li class="flex items-center gap-2">
                   <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>Custom Role-Based Access Control</span>
+                  <span>Role-Based Permissions Matrix</span>
                 </li>
                 <li class="flex items-center gap-2">
                   <CheckCircle2 class="h-4 w-4 text-emerald-400" />
@@ -761,7 +763,7 @@ const faqs = [
               to="/register"
               class="w-full py-2.5 px-4 text-center text-xs font-semibold rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white transition-all"
             >
-              Contact Sales
+              Start 14-Day Trial
             </RouterLink>
           </div>
         </div>
@@ -823,23 +825,62 @@ const faqs = [
       </section>
     </main>
 
-    <!-- Modern Footer -->
-    <footer class="border-t border-white/[0.08] bg-[#050507] py-12 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
-        <div class="flex items-center gap-3">
-          <div class="h-7 w-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white">
-            <MessageSquare class="h-4 w-4" />
+    <!-- Modern Multi-Column Footer -->
+    <footer class="border-t border-white/[0.08] bg-[#050507] pt-16 pb-12 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
+        <div class="col-span-2">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="h-8 w-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+              <MessageSquare class="h-4 w-4" />
+            </div>
+            <span class="text-base font-bold text-white tracking-tight">NexWhat</span>
           </div>
-          <span class="text-sm font-semibold text-white">NexWhat</span>
-          <span class="text-xs text-white/40">© 2026 NexWhat. All rights reserved.</span>
+          <p class="text-xs text-slate-400 max-w-sm leading-relaxed mb-4">
+            The modern WhatsApp Business Cloud API engagement platform with zero conversation markup. Empowering SMBs, D2C brands, and agile teams.
+          </p>
+          <div class="text-[11px] text-emerald-400 font-mono">
+            Direct Meta Cloud API Integration • Model 1 Billing
+          </div>
         </div>
 
-        <div class="flex items-center gap-6 text-xs text-white/50">
-          <a href="#features" class="hover:text-white transition-colors">Features</a>
-          <a href="#direct-billing" class="hover:text-white transition-colors">Direct Meta Billing</a>
-          <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
-          <RouterLink to="/login" class="hover:text-white transition-colors">Sign In</RouterLink>
-          <RouterLink to="/register" class="hover:text-white transition-colors">Register</RouterLink>
+        <div>
+          <h4 class="text-xs font-semibold text-white uppercase tracking-wider mb-3">Solutions</h4>
+          <ul class="space-y-2.5 text-xs text-slate-400">
+            <li><RouterLink to="/services/broadcast" class="hover:text-emerald-400 transition-colors">Broadcast Campaigns</RouterLink></li>
+            <li><RouterLink to="/services/chatbot" class="hover:text-emerald-400 transition-colors">Visual Flow Builder</RouterLink></li>
+            <li><RouterLink to="/services/calling" class="hover:text-emerald-400 transition-colors">Voice Calling & IVR</RouterLink></li>
+            <li><RouterLink to="/services/inbox" class="hover:text-emerald-400 transition-colors">Shared Team Inbox</RouterLink></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-semibold text-white uppercase tracking-wider mb-3">Company</h4>
+          <ul class="space-y-2.5 text-xs text-slate-400">
+            <li><RouterLink to="/about" class="hover:text-emerald-400 transition-colors">About NexWhat</RouterLink></li>
+            <li><a href="#direct-billing" class="hover:text-emerald-400 transition-colors">Direct Meta Billing</a></li>
+            <li><a href="#pricing" class="hover:text-emerald-400 transition-colors">Subscription Pricing</a></li>
+            <li><a href="#faq" class="hover:text-emerald-400 transition-colors">Platform FAQ</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-semibold text-white uppercase tracking-wider mb-3">Legal & Security</h4>
+          <ul class="space-y-2.5 text-xs text-slate-400">
+            <li><RouterLink to="/privacy" class="hover:text-emerald-400 transition-colors">Privacy Policy</RouterLink></li>
+            <li><RouterLink to="/terms" class="hover:text-emerald-400 transition-colors">Terms of Service</RouterLink></li>
+            <li><RouterLink to="/refund" class="hover:text-emerald-400 transition-colors">Refund & Cancellation</RouterLink></li>
+            <li><RouterLink to="/login" class="hover:text-emerald-400 transition-colors">Account Sign In</RouterLink></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="max-w-7xl mx-auto pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+        <span>© 2026 NexWhat Inc. All rights reserved. Built with Meta Cloud API.</span>
+        <div class="flex gap-6">
+          <RouterLink to="/privacy" class="hover:text-slate-400">Privacy</RouterLink>
+          <RouterLink to="/terms" class="hover:text-slate-400">Terms</RouterLink>
+          <RouterLink to="/refund" class="hover:text-slate-400">Refunds</RouterLink>
+          <RouterLink to="/about" class="hover:text-slate-400">About Us</RouterLink>
         </div>
       </div>
     </footer>

@@ -192,15 +192,15 @@ const handleLogout = async () => {
             <div v-else-if="sIdx > 0" :class="['my-2 mx-2.5 border-t border-white/[0.06] light:border-gray-200', isCollapsed && 'mx-1']" />
 
             <!-- Section items -->
-            <div class="space-y-0.5">
+            <div class="space-y-1">
               <template v-for="item in section.items" :key="item.path">
                 <RouterLink
                   :to="item.path"
                   :class="[
-                    'nav-active-indicator btn-press flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-200',
+                    'nav-active-indicator btn-press flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200',
                     item.active
-                      ? 'bg-white/[0.08] text-white light:bg-gray-100 light:text-gray-900'
-                      : 'text-white/50 hover:text-white hover:bg-white/[0.06] light:text-gray-500 light:hover:text-gray-900 light:hover:bg-gray-50',
+                      ? 'bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-transparent text-emerald-300 font-semibold border-l-2 border-emerald-400 shadow-sm shadow-emerald-950/30 light:bg-emerald-50 light:text-emerald-700 light:border-emerald-600'
+                      : 'text-slate-400 hover:text-white hover:bg-white/[0.05] light:text-gray-600 light:hover:text-gray-900 light:hover:bg-gray-100',
                     isCollapsed && 'md:justify-center md:px-2'
                   ]"
                   :data-active="item.active"
@@ -208,7 +208,7 @@ const handleLogout = async () => {
                   :aria-current="item.active ? 'page' : undefined"
                   @click="isMobileMenuOpen = false"
                 >
-                  <component :is="item.icon" class="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <component :is="item.icon" :class="['h-4 w-4 shrink-0', item.active ? 'text-emerald-400' : 'text-slate-400']" aria-hidden="true" />
                   <span :class="isCollapsed && 'md:sr-only'">{{ $t(item.name) }}</span>
                 </RouterLink>
 
@@ -219,10 +219,10 @@ const handleLogout = async () => {
                     :key="child.path"
                     :to="child.path"
                     :class="[
-                      'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-all duration-200 ml-4',
+                      'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[12px] transition-all duration-200 ml-4',
                       route.path === child.path
-                        ? 'bg-white/[0.06] text-white light:bg-gray-100 light:text-gray-900'
-                        : 'text-white/40 hover:text-white/70 hover:bg-white/[0.04] light:text-gray-400 light:hover:text-gray-700 light:hover:bg-gray-50'
+                        ? 'bg-emerald-500/10 text-emerald-300 font-semibold light:bg-emerald-50 light:text-emerald-700'
+                        : 'text-slate-400 hover:text-white hover:bg-white/[0.03] light:text-gray-500 light:hover:text-gray-800'
                     ]"
                     role="menuitem"
                     :aria-current="route.path === child.path ? 'page' : undefined"

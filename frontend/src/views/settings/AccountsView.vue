@@ -23,8 +23,12 @@ import {
   Loader2,
   Facebook,
   Smartphone,
-  Network
+  Network,
+  Sparkles
 } from 'lucide-vue-next'
+import WhatsAppLinkingWizard from '@/components/onboarding/WhatsAppLinkingWizard.vue'
+
+const showWizard = ref(false)
 
 declare global {
   interface Window {
@@ -263,15 +267,12 @@ async function confirmDelete() {
       <template #actions>
         <div v-if="canWrite" class="flex items-center gap-2">
           <Button
-            v-if="whatsappConfig?.app_id && whatsappConfig?.config_id"
             size="sm"
-            @click="showOnboardingDialog = true"
-            :disabled="isConnectingFB"
-            class="bg-gradient-to-br from-facebook to-facebook-dark hover:from-facebook-hover hover:to-facebook-hoverDark text-white border-none shadow-none"
+            @click="showWizard = true"
+            class="bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold shadow-md shadow-emerald-500/20 hover:brightness-110"
           >
-            <Loader2 v-if="isConnectingFB" class="h-4 w-4 mr-2 animate-spin" />
-            <Facebook v-else class="h-4 w-4 mr-2" />
-            {{ $t('accounts.connectFacebook') }}
+            <Sparkles class="h-4 w-4 mr-1.5" />
+            Connect WhatsApp (10 Mins)
           </Button>
           <RouterLink to="/settings/accounts/new">
             <Button variant="outline" size="sm">
@@ -317,15 +318,12 @@ async function confirmDelete() {
                 <template #empty-action>
                   <div v-if="canWrite" class="flex gap-3 justify-center">
                     <Button
-                      v-if="whatsappConfig?.app_id && whatsappConfig?.config_id"
                       size="lg"
-                      @click="showOnboardingDialog = true"
-                      :disabled="isConnectingFB || !isFBSDKLoaded"
-                      class="bg-gradient-to-br from-facebook to-facebook-dark hover:from-facebook-hover hover:to-facebook-hoverDark text-white border-none shadow-none"
+                      @click="showWizard = true"
+                      class="bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold shadow-xl shadow-emerald-500/25 hover:brightness-110"
                     >
-                      <Facebook v-if="!isConnectingFB" class="mr-2 h-5 w-5" />
-                      <Loader2 v-else class="mr-2 h-5 w-5 animate-spin" />
-                      {{ $t('accounts.connectFacebook') }}
+                      <Sparkles class="mr-2 h-5 w-5" />
+                      Connect WhatsApp Number (10 Mins)
                     </Button>
                     <RouterLink to="/settings/accounts/new">
                       <Button variant="outline" size="lg">
@@ -479,5 +477,8 @@ async function confirmDelete() {
         </div>
       </DialogContent>
     </Dialog>
+
+    <!-- Guided WhatsApp Linking Wizard -->
+    <WhatsAppLinkingWizard v-model:open="showWizard" @connected="fetchAccounts" />
   </div>
 </template>
