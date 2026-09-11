@@ -12,6 +12,7 @@ import {
   Menu,
   X
 } from 'lucide-vue-next'
+import NexWhatLogo from '@/components/common/NexWhatLogo.vue'
 import { wsService } from '@/services/websocket'
 import { authService } from '@/services/api'
 import OrganizationSwitcher from './OrganizationSwitcher.vue'
@@ -58,11 +59,6 @@ function filterItems(items: NavSection['items']) {
         child => !child.permission || authStore.hasPermission(child.permission, 'read')
       )
 
-      let effectivePath = item.path
-      if (item.childPermissions && item.permission && !authStore.hasPermission(item.permission, 'read') && filteredChildren?.length) {
-        effectivePath = filteredChildren[0].path
-      }
-
       const originalPath = item.path
       const isActive = (originalPath === '/dashboard' || originalPath === '/')
         ? route.name === 'dashboard'
@@ -72,15 +68,13 @@ function filterItems(items: NavSection['items']) {
 
       return {
         ...item,
-        path: effectivePath,
         active: isActive,
-        children: filteredChildren
+        children: filteredChildren && filteredChildren.length > 0 ? filteredChildren : undefined
       }
     })
 }
 
-// Filter navigation sections based on user permissions
-const navSections = computed(() => {
+const visibleSections = computed(() => {
   return navigationSections
     .map(section => ({
       ...section,
@@ -89,8 +83,13 @@ const navSections = computed(() => {
     .filter(section => section.items.length > 0)
 })
 
-const mainSections = computed(() => navSections.value.filter(s => !s.pinBottom))
-const bottomSections = computed(() => navSections.value.filter(s => s.pinBottom))
+const mainSections = computed(() => visibleSections.value.filter(s => !s.pinBottom))
+const bottomSections = computed(() => visibleSections.value.filter(s => s.pinBottom))
+
+function isChildActive(childPaths: string[] | undefined): boolean {
+  if (!childPaths) return false
+  return childPaths.some(p => route.path === p || route.path.startsWith(p + '/'))
+}
 
 const toggleSidebar = () => {
   isCollapsed.value = !isCollapsed.value
@@ -110,10 +109,7 @@ const handleLogout = async () => {
     <!-- Mobile header -->
     <header class="fixed top-0 left-0 right-0 z-50 flex h-12 items-center justify-between border-b border-white/[0.08] light:border-gray-200 bg-[#0a0a0b]/95 light:bg-white/95 backdrop-blur-sm px-3 md:hidden">
       <RouterLink to="/dashboard" class="flex items-center gap-2">
-        <div class="h-7 w-7 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-          <MessageSquare class="h-4 w-4 text-white" />
-        </div>
-        <span class="font-semibold text-sm text-white light:text-gray-900">NexWhat</span>
+        <NexWhatLogo size="xs" :showBadge="false" />
       </RouterLink>
       <Button
         variant="ghost"
@@ -150,15 +146,7 @@ const handleLogout = async () => {
       <!-- Logo (hidden on mobile, shown in header instead) -->
       <div class="hidden md:flex h-12 items-center justify-between px-3 border-b border-white/[0.08] light:border-gray-200">
         <RouterLink to="/dashboard" class="flex items-center gap-2">
-          <div class="h-7 w-7 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <MessageSquare class="h-4 w-4 text-white" />
-          </div>
-          <span
-            v-if="!isCollapsed"
-            class="font-semibold text-sm text-white light:text-gray-900"
-          >
-            NexWhat
-          </span>
+          <NexWhatLogo size="xs" :showText="!isCollapsed" :showBadge="false" />
         </RouterLink>
         <Button
           variant="ghost"

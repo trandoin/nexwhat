@@ -89,6 +89,54 @@ const router = createRouter({
       meta: { requiresAuth: false }
     },
     {
+      path: '/services/flows',
+      name: 'service-flows',
+      component: () => import('@/views/pages/services/FlowsView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/industries/ecommerce',
+      name: 'industry-ecommerce',
+      component: () => import('@/views/pages/industries/EcommerceView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/industries/education',
+      name: 'industry-education',
+      component: () => import('@/views/pages/industries/EducationView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/industries/real-estate',
+      name: 'industry-real-estate',
+      component: () => import('@/views/pages/industries/RealEstateView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/industries/finance',
+      name: 'industry-finance',
+      component: () => import('@/views/pages/industries/FinanceView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/industries/healthcare',
+      name: 'industry-healthcare',
+      component: () => import('@/views/pages/industries/HealthcareView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/industries/automobile',
+      name: 'industry-automobile',
+      component: () => import('@/views/pages/industries/AutomobileView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/industries/events',
+      name: 'industry-events',
+      component: () => import('@/views/pages/industries/EventsView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
       path: '',
       component: () => import('@/components/layout/AppLayout.vue'),
       meta: { requiresAuth: true },

@@ -8,7 +8,20 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'vue-sonner'
-import { MessageSquare, Loader2, CheckCircle2, ShieldCheck, Zap } from 'lucide-vue-next'
+import {
+  MessageSquare,
+  Loader2,
+  Zap,
+  CheckCircle2,
+  ShieldCheck,
+  Building2,
+  User,
+  Mail,
+  Lock,
+  ArrowRight,
+  Sparkles
+} from 'lucide-vue-next'
+import NexWhatLogo from '@/components/common/NexWhatLogo.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -24,6 +37,15 @@ const isLoading = ref(false)
 
 const organizationId = computed(() => (route.query.org as string) || '')
 const isInviteMode = computed(() => !!organizationId.value)
+const selectedPlan = computed(() => {
+  const p = (route.query.plan as string || '').toLowerCase()
+  if (p === 'starter') return { name: 'Starter Plan', price: '₹299/mo', badge: 'bg-blue-500/20 text-blue-300 border-blue-500/30' }
+  if (p === 'growth') return { name: 'Growth Plan', price: '₹599/mo', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' }
+  if (p === 'pro' || p === 'promax') return { name: 'Pro Max Plan', price: '₹999/mo', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/30' }
+  return null
+})
+
+const selectedIndustry = computed(() => (route.query.industry as string || ''))
 
 const handleRegister = async () => {
   if (!isInviteMode.value && !companyName.value.trim()) {
@@ -85,10 +107,7 @@ const handleRegister = async () => {
       <Card class="bg-[#11131a]/90 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/80 rounded-2xl overflow-hidden">
         <CardHeader class="space-y-3 text-center pb-4 pt-8">
           <RouterLink to="/" class="inline-flex items-center justify-center gap-2.5 mx-auto group">
-            <div class="h-11 w-11 rounded-xl bg-gradient-to-tr from-emerald-500 to-green-400 flex items-center justify-center shadow-lg shadow-emerald-500/25 group-hover:scale-105 transition-transform">
-              <MessageSquare class="h-6 w-6 text-slate-950 stroke-[2.5]" />
-            </div>
-            <span class="text-2xl font-black tracking-tight text-white">Nex<span class="text-emerald-400">What</span></span>
+            <NexWhatLogo size="lg" />
           </RouterLink>
 
           <div>
@@ -98,6 +117,16 @@ const handleRegister = async () => {
             <CardDescription class="text-slate-400 text-sm mt-1">
               {{ isInviteMode ? 'You have been invited to collaborate on WhatsApp' : 'Get enterprise-grade WhatsApp automation in under 3 minutes' }}
             </CardDescription>
+
+            <!-- Dynamic Selected Plan Badge if coming from pricing -->
+            <div v-if="selectedPlan" class="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-bold" :class="selectedPlan.badge">
+              <Sparkles class="h-3.5 w-3.5" />
+              <span>Selected: {{ selectedPlan.name }} ({{ selectedPlan.price }})</span>
+            </div>
+            <div v-else-if="selectedIndustry" class="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full border border-teal-500/30 bg-teal-500/10 text-teal-300 text-xs font-bold capitalize">
+              <Sparkles class="h-3.5 w-3.5" />
+              <span>Tailored for {{ selectedIndustry }}</span>
+            </div>
           </div>
 
           <!-- Feature badges -->

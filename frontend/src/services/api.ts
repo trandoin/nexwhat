@@ -141,7 +141,14 @@ api.interceptors.response.use(
         localStorage.removeItem('user')
         localStorage.removeItem('auth_token')
         localStorage.removeItem('refresh_token')
-        window.location.href = basePath + '/login'
+
+        // Only redirect to login if the user is currently on a protected route!
+        const publicPrefixes = ['/', '/login', '/register', '/about', '/privacy', '/terms', '/refund', '/services', '/industries']
+        const currentPath = window.location.pathname.replace(basePath, '') || '/'
+        const isPublic = publicPrefixes.some(p => p === '/' ? currentPath === '/' : currentPath.startsWith(p))
+        if (!isPublic) {
+          window.location.href = basePath + '/login?redirect=' + encodeURIComponent(currentPath)
+        }
       }
     }
 

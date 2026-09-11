@@ -1,27 +1,108 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" fill="none">
   <defs>
-    <linearGradient id="nexwhatGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#10B981" />
-      <stop offset="100%" stop-color="#06B6D4" />
+    <!-- Background Squircle Gradient -->
+    <linearGradient id="emblemBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1324" />
+      <stop offset="50%" stop-color="#022c22" />
+      <stop offset="100%" stop-color="#041f1a" />
     </linearGradient>
-    <linearGradient id="bubbleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#059669" />
-      <stop offset="100%" stop-color="#0891B2" />
+
+    <!-- Outer Border Neon Gradient -->
+    <linearGradient id="neonBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="50%" stop-color="#14b8a6" />
+      <stop offset="100%" stop-color="#06b6d4" />
     </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#10B981" flood-opacity="0.3"/>
-    </filter>
+
+    <!-- Primary 'N' Wave Radiant Gradient -->
+    <linearGradient id="nWaveGrad" x1="15%" y1="10%" x2="85%" y2="90%">
+      <stop offset="0%" stop-color="#6ee7b7" />
+      <stop offset="30%" stop-color="#10b981" />
+      <stop offset="70%" stop-color="#14b8a6" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+
+    <!-- Glass Specular Highlight -->
+    <linearGradient id="specularGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+
+    <!-- Pulse Wave Gradient -->
+    <linearGradient id="pulseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#22d3ee" />
+    </linearGradient>
   </defs>
 
-  <!-- Rounded App Icon Background -->
-  <rect width="92" height="92" x="4" y="4" rx="24" fill="url(#bubbleGrad)" filter="url(#glow)"/>
+  <!-- Base Squircle Container -->
+  <rect
+    x="4"
+    y="4"
+    width="112"
+    height="112"
+    rx="28"
+    fill="url(#emblemBg)"
+    stroke="url(#neonBorder)"
+    stroke-width="3"
+  />
 
-  <!-- Chat Bubble Tail -->
-  <path d="M 22 76 L 12 90 L 34 84 Z" fill="#0891B2" />
+  <!-- Glass Highlight Shimmer -->
+  <rect
+    x="5"
+    y="5"
+    width="110"
+    height="55"
+    rx="26"
+    fill="url(#specularGrad)"
+  />
 
-  <!-- Modern N Graphic for NexWhat -->
-  <path d="M 30 30 L 30 70 L 40 70 L 60 42 L 60 70 L 70 70 L 70 30 L 60 30 L 40 58 L 40 30 Z" fill="#FFFFFF" font-weight="bold"/>
-  
-  <!-- WhatsApp Accent Dot -->
-  <circle cx="70" cy="30" r="5" fill="#34D399" stroke="#FFFFFF" stroke-width="2"/>
+  <!-- WhatsApp Chat Bubble Ring with Tail -->
+  <path
+    d="M 32 75 C 24 67 22 55 26 44 C 31 31 43 23 57 23 C 73 23 87 35 88 51 C 89 68 76 82 59 83 C 51 83 45 80 40 78 L 26 84 L 32 75 Z"
+    fill="none"
+    stroke="url(#neonBorder)"
+    stroke-width="3.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.9"
+  />
+
+  <!-- Futuristic Sculpted 'N' Wave / Pulse -->
+  <path
+    d="M 41 68 L 41 38 C 41 35.8 43 34 45.2 34.5 C 47.4 35 48.5 36.8 48.5 39 L 48.5 67 C 48.5 69.2 46.5 71 44.3 70.5 C 42.1 70 41 68.2 41 68 Z"
+    fill="url(#nWaveGrad)"
+  />
+
+  <path
+    d="M 43 37 L 69 66 C 71 68.2 74 67.5 74 64.5 L 74 61 L 48 33 C 46 31 43 32.5 43 35 Z"
+    fill="url(#nWaveGrad)"
+  />
+
+  <path
+    d="M 68.5 68 L 68.5 38 C 68.5 35.8 70.5 34 72.7 34.5 C 74.9 35 76 36.8 76 39 L 76 67 C 76 69.2 74 71 71.8 70.5 C 69.6 70 68.5 68.2 68.5 68 Z"
+    fill="url(#nWaveGrad)"
+  />
+
+  <!-- Broadcast Signal Pulse Wave 1 -->
+  <path
+    d="M 83 41 C 88 47 88 55 83 61"
+    stroke="url(#pulseGrad)"
+    stroke-width="3.5"
+    stroke-linecap="round"
+    opacity="0.95"
+  />
+
+  <!-- Broadcast Signal Pulse Wave 2 (Outer) -->
+  <path
+    d="M 91 36 C 98 44 98 58 91 66"
+    stroke="url(#pulseGrad)"
+    stroke-width="3.5"
+    stroke-linecap="round"
+    opacity="0.6"
+  />
+
+  <!-- Meta Status Beacon Orb -->
+  <circle cx="75" cy="27" r="4.5" fill="#34d399" />
+  <circle cx="75" cy="27" r="7.5" stroke="#34d399" stroke-width="1.5" opacity="0.45" />
 </svg>

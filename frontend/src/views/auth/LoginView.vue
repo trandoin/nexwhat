@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'vue-sonner'
 import { MessageSquare, Loader2 } from 'lucide-vue-next'
+import NexWhatLogo from '@/components/common/NexWhatLogo.vue'
 
 const { t } = useI18n()
 
@@ -76,7 +77,8 @@ const handleLogin = async () => {
     toast.success(t('auth.loginSuccess'))
 
     const redirect = route.query.redirect as string
-    router.push(redirect || '/')
+    const target = (redirect && redirect !== '/') ? redirect : '/dashboard'
+    router.push(target)
   } catch (error: any) {
     const message = error.response?.data?.message || t('auth.invalidCredentials')
     toast.error(message)
@@ -94,14 +96,16 @@ const initiateSSO = (provider: string) => {
 <template>
   <div class="min-h-screen flex items-center justify-center bg-[#0a0a0b] light:bg-gradient-to-br light:from-gray-50 light:to-gray-100 p-4">
     <div class="w-full max-w-md rounded-2xl border border-white/[0.08] bg-white/[0.02] backdrop-blur light:bg-white light:border-gray-200 light:shadow-xl">
-      <div class="p-8 space-y-1 text-center">
-        <div class="flex justify-center mb-4">
-          <div class="h-12 w-12 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <MessageSquare class="h-7 w-7 text-white" />
-          </div>
+      <div class="p-8 space-y-2 text-center">
+        <div class="flex justify-center mb-3">
+          <RouterLink to="/">
+            <NexWhatLogo size="lg" :showText="false" />
+          </RouterLink>
         </div>
-        <h2 class="text-2xl font-bold text-white light:text-gray-900">{{ $t('auth.welcomeTitle') }}</h2>
-        <p class="text-white/50 light:text-gray-500">
+        <h2 class="text-2xl font-black text-white light:text-gray-900 tracking-tight flex items-center justify-center gap-1.5">
+          Sign In to <span class="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">NexWhat</span>
+        </h2>
+        <p class="text-xs text-slate-400 light:text-gray-500">
           {{ $t('auth.welcomeSubtitle') }}
         </p>
       </div>

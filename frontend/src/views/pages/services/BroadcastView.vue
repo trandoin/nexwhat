@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import PublicNavbar from '@/components/layout/PublicNavbar.vue'
+import NexWhatLogo from '@/components/common/NexWhatLogo.vue'
 import {
   Send,
   MessageSquare,
@@ -16,37 +18,8 @@ import {
 
 <template>
   <div class="min-h-screen bg-[#07090e] text-slate-100 selection:bg-emerald-500 selection:text-white flex flex-col font-sans">
-    <!-- Header -->
-    <header class="sticky top-0 z-50 backdrop-blur-xl bg-[#07090e]/80 border-b border-white/[0.08]">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <RouterLink to="/" class="flex items-center gap-2.5 group">
-          <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-[1px] shadow-lg shadow-emerald-500/20">
-            <div class="h-full w-full bg-[#0b0f17] rounded-[11px] flex items-center justify-center group-hover:bg-transparent transition-all">
-              <MessageSquare class="h-4 w-4 text-emerald-400 group-hover:text-white transition-colors" />
-            </div>
-          </div>
-          <span class="text-lg font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
-            NexWhat
-          </span>
-        </RouterLink>
-
-        <div class="flex items-center gap-4">
-          <RouterLink
-            to="/"
-            class="flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-emerald-400 transition-colors"
-          >
-            <ArrowLeft class="h-3.5 w-3.5" />
-            Back to Home
-          </RouterLink>
-          <RouterLink
-            to="/register"
-            class="hidden sm:inline-flex px-4 py-2 text-xs font-semibold rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-colors"
-          >
-            Start Broadcasting
-          </RouterLink>
-        </div>
-      </div>
-    </header>
+    <!-- Rich Public Navbar with Dropdowns -->
+    <PublicNavbar />
 
     <!-- Hero -->
     <main class="flex-1">
@@ -143,7 +116,10 @@ import {
     <!-- Footer -->
     <footer class="border-t border-white/[0.06] bg-[#05070a] py-8 text-center text-xs text-slate-500">
       <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <span>© 2026 NexWhat Inc. All rights reserved.</span>
+        <div class="flex items-center gap-2">
+          <NexWhatLogo size="sm" :showBadge="false" />
+          <span>© 2026 NexWhat Inc. All rights reserved.</span>
+        </div>
         <div class="flex gap-4">
           <RouterLink to="/privacy" class="hover:text-slate-300">Privacy Policy</RouterLink>
           <RouterLink to="/terms" class="hover:text-slate-300">Terms of Service</RouterLink>

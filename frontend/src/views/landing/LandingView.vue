@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
+import PublicNavbar from '@/components/layout/PublicNavbar.vue'
+import NexWhatLogo from '@/components/common/NexWhatLogo.vue'
 import {
   MessageSquare,
   Sparkles,
@@ -22,8 +24,20 @@ import {
 
 const router = useRouter()
 
-// Pricing Billing Cycle Toggle
+// Pricing Billing Cycle & Currency Toggle
 const isAnnual = ref(true)
+const currency = ref<'INR' | 'USD'>('INR')
+
+const pricingDisplay = computed(() => {
+  const isUsd = currency.value === 'USD'
+  return {
+    symbol: isUsd ? '$' : '₹',
+    starter: isUsd ? (isAnnual.value ? '3.2' : '4') : (isAnnual.value ? '239' : '299'),
+    growth: isUsd ? (isAnnual.value ? '6.4' : '8') : (isAnnual.value ? '479' : '599'),
+    pro: isUsd ? (isAnnual.value ? '10.4' : '13') : (isAnnual.value ? '799' : '999'),
+    period: '/ month'
+  }
+})
 
 // Interactive ROI Calculator State
 const contactCount = ref(15000)
@@ -153,48 +167,7 @@ const faqs = [
     </div>
 
     <!-- Navigation Header -->
-    <header class="sticky top-0 z-50 border-b border-white/[0.07] bg-[#070709]/80 backdrop-blur-xl">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <!-- Logo -->
-        <RouterLink to="/" class="flex items-center gap-3 group">
-          <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/25 group-hover:scale-105 transition-transform duration-200">
-            <MessageSquare class="h-5 w-5 text-white" />
-          </div>
-          <span class="text-xl font-bold tracking-tight text-white flex items-center gap-1.5">
-            NexWhat
-            <span class="text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">SaaS</span>
-          </span>
-        </RouterLink>
-
-        <!-- Nav Links (Desktop) -->
-        <nav class="hidden lg:flex items-center gap-6 text-sm font-medium text-white/70">
-          <RouterLink to="/services/broadcast" class="hover:text-emerald-400 transition-colors">Broadcasts</RouterLink>
-          <RouterLink to="/services/chatbot" class="hover:text-emerald-400 transition-colors">Chatbots</RouterLink>
-          <RouterLink to="/services/calling" class="hover:text-emerald-400 transition-colors">Voice Calling</RouterLink>
-          <RouterLink to="/services/inbox" class="hover:text-emerald-400 transition-colors">Team Inbox</RouterLink>
-          <a href="#direct-billing" class="hover:text-emerald-400 transition-colors">Zero Markup</a>
-          <a href="#pricing" class="hover:text-emerald-400 transition-colors">Pricing</a>
-          <RouterLink to="/about" class="hover:text-emerald-400 transition-colors">About Us</RouterLink>
-        </nav>
-
-        <!-- Header Actions -->
-        <div class="flex items-center gap-3">
-          <RouterLink
-            to="/login"
-            class="px-4 py-2 text-sm font-medium text-white/80 hover:text-white transition-colors"
-          >
-            Sign In
-          </RouterLink>
-          <RouterLink
-            to="/register"
-            class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/35 hover:brightness-110 active:scale-95 transition-all duration-150"
-          >
-            Start Free Trial
-            <ArrowRight class="h-4 w-4" />
-          </RouterLink>
-        </div>
-      </div>
-    </header>
+    <PublicNavbar />
 
     <!-- Main Content -->
     <main class="relative z-10">
@@ -604,27 +577,52 @@ const faqs = [
             Choose the plan that fits your business scale. All plans include 14 days free trial.
           </p>
 
-          <!-- Billing Cycle Toggle -->
-          <div class="inline-flex items-center p-1 rounded-full bg-white/[0.05] border border-white/[0.08]">
-            <button
-              @click="isAnnual = false"
-              :class="[
-                'px-4 py-1.5 rounded-full text-xs font-semibold transition-all',
-                !isAnnual ? 'bg-emerald-500 text-neutral-950 shadow' : 'text-white/60 hover:text-white'
-              ]"
-            >
-              Monthly Billing
-            </button>
-            <button
-              @click="isAnnual = true"
-              :class="[
-                'px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5',
-                isAnnual ? 'bg-emerald-500 text-neutral-950 shadow' : 'text-white/60 hover:text-white'
-              ]"
-            >
-              Annual Billing
-              <span class="px-1.5 py-0.5 rounded-full bg-emerald-300 text-neutral-950 text-[10px] font-bold">Save 20%</span>
-            </button>
+          <!-- Billing Cycle & Currency Toggles -->
+          <div class="flex flex-wrap items-center justify-center gap-3">
+            <!-- Monthly / Annual Toggle -->
+            <div class="inline-flex items-center p-1 rounded-full bg-white/[0.05] border border-white/[0.08]">
+              <button
+                @click="isAnnual = false"
+                :class="[
+                  'px-4 py-1.5 rounded-full text-xs font-semibold transition-all',
+                  !isAnnual ? 'bg-emerald-500 text-neutral-950 shadow' : 'text-white/60 hover:text-white'
+                ]"
+              >
+                Monthly Billing
+              </button>
+              <button
+                @click="isAnnual = true"
+                :class="[
+                  'px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5',
+                  isAnnual ? 'bg-emerald-500 text-neutral-950 shadow' : 'text-white/60 hover:text-white'
+                ]"
+              >
+                Annual Billing
+                <span class="px-1.5 py-0.5 rounded-full bg-emerald-300 text-neutral-950 text-[10px] font-bold">Save 20%</span>
+              </button>
+            </div>
+
+            <!-- Currency Switcher Toggle -->
+            <div class="inline-flex items-center p-1 rounded-full bg-white/[0.05] border border-white/[0.08]">
+              <button
+                @click="currency = 'INR'"
+                :class="[
+                  'px-3 py-1.5 rounded-full text-xs font-semibold transition-all',
+                  currency === 'INR' ? 'bg-teal-500 text-neutral-950 shadow' : 'text-white/60 hover:text-white'
+                ]"
+              >
+                ₹ INR
+              </button>
+              <button
+                @click="currency = 'USD'"
+                :class="[
+                  'px-3 py-1.5 rounded-full text-xs font-semibold transition-all',
+                  currency === 'USD' ? 'bg-teal-500 text-neutral-950 shadow' : 'text-white/60 hover:text-white'
+                ]"
+              >
+                $ USD
+              </button>
+            </div>
           </div>
         </div>
 
@@ -635,8 +633,8 @@ const faqs = [
               <div class="text-lg font-bold text-white mb-2">Starter</div>
               <p class="text-xs text-white/50 mb-6">For startups and small stores launching WhatsApp marketing.</p>
               <div class="flex items-baseline gap-1 mb-6">
-                <span class="text-4xl font-extrabold text-white">₹{{ isAnnual ? '239' : '299' }}</span>
-                <span class="text-xs text-white/40">/ month</span>
+                <span class="text-4xl font-extrabold text-white">{{ pricingDisplay.symbol }}{{ pricingDisplay.starter }}</span>
+                <span class="text-xs text-white/40">{{ pricingDisplay.period }}</span>
               </div>
 
               <ul class="space-y-3 text-xs text-white/70 mb-8">
@@ -664,7 +662,7 @@ const faqs = [
             </div>
 
             <RouterLink
-              to="/register"
+              to="/register?plan=starter"
               class="w-full py-2.5 px-4 text-center text-xs font-semibold rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white transition-all"
             >
               Start 14-Day Trial
@@ -681,8 +679,8 @@ const faqs = [
               <div class="text-lg font-bold text-white mb-2">Growth</div>
               <p class="text-xs text-white/50 mb-6">For scaling D2C, ecommerce, and high-growth businesses.</p>
               <div class="flex items-baseline gap-1 mb-6">
-                <span class="text-4xl font-extrabold text-white">₹{{ isAnnual ? '479' : '599' }}</span>
-                <span class="text-xs text-white/40">/ month</span>
+                <span class="text-4xl font-extrabold text-white">{{ pricingDisplay.symbol }}{{ pricingDisplay.growth }}</span>
+                <span class="text-xs text-white/40">{{ pricingDisplay.period }}</span>
               </div>
 
               <ul class="space-y-3 text-xs text-white/80 mb-8">
@@ -714,7 +712,7 @@ const faqs = [
             </div>
 
             <RouterLink
-              to="/register"
+              to="/register?plan=growth"
               class="w-full py-3 px-4 text-center text-xs font-semibold rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25 hover:brightness-110 active:scale-95 transition-all"
             >
               Start 14-Day Trial
@@ -727,8 +725,8 @@ const faqs = [
               <div class="text-lg font-bold text-white mb-2">Pro Max</div>
               <p class="text-xs text-white/50 mb-6">Unlimited scale for demanding high-volume operations.</p>
               <div class="flex items-baseline gap-1 mb-6">
-                <span class="text-4xl font-extrabold text-white">₹{{ isAnnual ? '799' : '999' }}</span>
-                <span class="text-xs text-white/40">/ month</span>
+                <span class="text-4xl font-extrabold text-white">{{ pricingDisplay.symbol }}{{ pricingDisplay.pro }}</span>
+                <span class="text-xs text-white/40">{{ pricingDisplay.period }}</span>
               </div>
 
               <ul class="space-y-3 text-xs text-white/70 mb-8">
@@ -760,7 +758,7 @@ const faqs = [
             </div>
 
             <RouterLink
-              to="/register"
+              to="/register?plan=pro"
               class="w-full py-2.5 px-4 text-center text-xs font-semibold rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white transition-all"
             >
               Start 14-Day Trial
@@ -829,14 +827,11 @@ const faqs = [
     <footer class="border-t border-white/[0.08] bg-[#050507] pt-16 pb-12 px-4 sm:px-6 lg:px-8">
       <div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
         <div class="col-span-2">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="h-8 w-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
-              <MessageSquare class="h-4 w-4" />
-            </div>
-            <span class="text-base font-bold text-white tracking-tight">NexWhat</span>
+          <div class="mb-4">
+            <NexWhatLogo size="md" />
           </div>
           <p class="text-xs text-slate-400 max-w-sm leading-relaxed mb-4">
-            The modern WhatsApp Business Cloud API engagement platform with zero conversation markup. Empowering SMBs, D2C brands, and agile teams.
+            The modern WhatsApp Business Cloud API engagement platform with zero conversation markup. Empowering SMBs, D2C brands, and agile teams worldwide.
           </p>
           <div class="text-[11px] text-emerald-400 font-mono">
             Direct Meta Cloud API Integration • Model 1 Billing
@@ -844,12 +839,24 @@ const faqs = [
         </div>
 
         <div>
-          <h4 class="text-xs font-semibold text-white uppercase tracking-wider mb-3">Solutions</h4>
-          <ul class="space-y-2.5 text-xs text-slate-400">
+          <h4 class="text-xs font-semibold text-white uppercase tracking-wider mb-3">Industries</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
+            <li><RouterLink to="/industries/ecommerce" class="hover:text-emerald-400 transition-colors">E-Commerce & D2C</RouterLink></li>
+            <li><RouterLink to="/industries/education" class="hover:text-emerald-400 transition-colors">Education & EdTech</RouterLink></li>
+            <li><RouterLink to="/industries/real-estate" class="hover:text-emerald-400 transition-colors">Real Estate & PropTech</RouterLink></li>
+            <li><RouterLink to="/industries/finance" class="hover:text-emerald-400 transition-colors">Finance & Banking</RouterLink></li>
+            <li><RouterLink to="/industries/healthcare" class="hover:text-emerald-400 transition-colors">Healthcare & Clinics</RouterLink></li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 class="text-xs font-semibold text-white uppercase tracking-wider mb-3">Features</h4>
+          <ul class="space-y-2 text-xs text-slate-400">
             <li><RouterLink to="/services/broadcast" class="hover:text-emerald-400 transition-colors">Broadcast Campaigns</RouterLink></li>
             <li><RouterLink to="/services/chatbot" class="hover:text-emerald-400 transition-colors">Visual Flow Builder</RouterLink></li>
             <li><RouterLink to="/services/calling" class="hover:text-emerald-400 transition-colors">Voice Calling & IVR</RouterLink></li>
             <li><RouterLink to="/services/inbox" class="hover:text-emerald-400 transition-colors">Shared Team Inbox</RouterLink></li>
+            <li><RouterLink to="/services/flows" class="hover:text-emerald-400 transition-colors">WhatsApp Native Flows</RouterLink></li>
           </ul>
         </div>
 
