@@ -1,3 +1,4 @@
 nexwhat.vegitofresh.com {
+    header Cache-Control "no-cache, must-revalidate"
     reverse_proxy app:8080
 }
