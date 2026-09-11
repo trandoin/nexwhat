@@ -1,6 +1,6 @@
 services:
   app:
-    image: shridh0r/whatomate:latest
+    image: ghcr.io/trandoin/nexwhat:latest
     container_name: nexwhat_app
     restart: unless-stopped
     networks:
