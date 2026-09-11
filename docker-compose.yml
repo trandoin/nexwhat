@@ -3,9 +3,6 @@ services:
     image: shridh0r/whatomate:latest
     container_name: nexwhat_app
     restart: unless-stopped
-    ports:
-      - "80:8080"
-      - "8080:8080"
     networks:
       - nexwhat_network
     depends_on:
@@ -19,6 +16,20 @@ services:
       - ./uploads:/app/uploads:rw
       - ./config.toml:/app/config.toml:ro
     command: ["server", "-migrate", "-config", "/app/config.toml"]
+
+  caddy:
+    image: caddy:alpine
+    container_name: nexwhat_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - nexwhat_network
 
   db:
     image: postgres:17-alpine
@@ -62,3 +73,5 @@ networks:
 volumes:
   postgres-data:
   redis-data:
+  caddy_data:
+  caddy_config:
