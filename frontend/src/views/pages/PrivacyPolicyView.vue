@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PublicFooter from '@/components/layout/PublicFooter.vue'
 import { RouterLink } from 'vue-router'
 import { ShieldCheck, MessageSquare, ArrowLeft, Lock, Eye, Server, RefreshCw, Mail } from 'lucide-vue-next'
 </script>
@@ -121,15 +122,6 @@ import { ShieldCheck, MessageSquare, ArrowLeft, Lock, Eye, Server, RefreshCw, Ma
     </main>
 
     <!-- Footer -->
-    <footer class="border-t border-white/[0.06] bg-[#05070a] py-8 text-center text-xs text-slate-500">
-      <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <span>© 2026 NexWhat Inc. All rights reserved.</span>
-        <div class="flex gap-4">
-          <RouterLink to="/terms" class="hover:text-slate-300">Terms of Service</RouterLink>
-          <RouterLink to="/refund" class="hover:text-slate-300">Refund Policy</RouterLink>
-          <RouterLink to="/about" class="hover:text-slate-300">About Us</RouterLink>
-        </div>
-      </div>
-    </footer>
+    <PublicFooter />
   </div>
 </template>

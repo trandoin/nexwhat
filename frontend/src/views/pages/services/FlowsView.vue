@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PublicFooter from '@/components/layout/PublicFooter.vue'
 import { RouterLink } from 'vue-router'
 import PublicNavbar from '@/components/layout/PublicNavbar.vue'
 import NexWhatLogo from '@/components/common/NexWhatLogo.vue'
@@ -91,19 +92,6 @@ import {
     </main>
 
     <!-- Footer -->
-    <footer class="border-t border-white/[0.08] bg-[#05060a] py-12 text-xs text-slate-500">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div class="flex items-center gap-2">
-          <NexWhatLogo size="sm" :showBadge="false" />
-          <span>© 2026 NexWhat. All rights reserved.</span>
-        </div>
-        <div class="flex items-center gap-6">
-          <RouterLink to="/privacy" class="hover:text-emerald-400">Privacy Policy</RouterLink>
-          <RouterLink to="/terms" class="hover:text-emerald-400">Terms of Service</RouterLink>
-          <RouterLink to="/refund" class="hover:text-emerald-400">Refund Policy</RouterLink>
-          <RouterLink to="/about" class="hover:text-emerald-400">About Us</RouterLink>
-        </div>
-      </div>
-    </footer>
+    <PublicFooter />
   </div>
 </template>

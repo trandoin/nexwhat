@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import FlowPhonePreview from './FlowPhonePreview.vue'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -83,6 +84,7 @@ const emit = defineEmits<{
 const screens = ref<FlowScreen[]>(props.modelValue?.screens || [])
 const selectedScreenIndex = ref<number>(0)
 const selectedComponentIndex = ref<number | null>(null)
+const viewMode = ref<'editor' | 'preview' | 'split'>('editor')
 
 // Watch for external changes
 watch(() => props.modelValue, (newVal) => {
@@ -413,7 +415,17 @@ defineExpose({
       </CardHeader>
       <Separator />
 
-      <div v-if="selectedScreen" class="flex-1 flex overflow-hidden">
+      <!-- Pure Live Preview Mode -->
+      <div v-if="viewMode === 'preview'" class="flex-1 flex items-center justify-center p-4 overflow-y-auto bg-muted/20">
+        <FlowPhonePreview
+          :screens="screens"
+          :flow-title="selectedScreen?.title || 'WhatsApp Flow'"
+          :initial-screen-id="selectedScreen?.id"
+        />
+      </div>
+
+      <!-- Editor or Split View Mode -->
+      <div v-else-if="selectedScreen" class="flex-1 flex overflow-hidden">
         <!-- Component Palette -->
         <ScrollArea class="w-48 border-r flex-shrink-0">
           <div class="p-3">

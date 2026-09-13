@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PublicFooter from '@/components/layout/PublicFooter.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import PublicNavbar from '@/components/layout/PublicNavbar.vue'
@@ -745,72 +746,6 @@ const faqs = [
     </main>
 
     <!-- Modern Multi-Column Footer -->
-    <footer class="border-t border-white/[0.08] bg-[#050507] pt-16 pb-12 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
-        <div class="col-span-2">
-          <div class="mb-4">
-            <NexWhatLogo size="md" />
-          </div>
-          <p class="text-xs text-slate-400 max-w-sm leading-relaxed mb-4">
-            The modern WhatsApp Business Cloud API engagement platform with zero conversation markup. Empowering SMBs, D2C brands, and agile teams worldwide.
-          </p>
-          <div class="text-[11px] text-emerald-400 font-mono">
-            Direct Meta Cloud API Integration • Model 1 Billing
-          </div>
-        </div>
-
-        <div>
-          <h4 class="text-xs font-semibold text-white uppercase tracking-wider mb-3">Industries</h4>
-          <ul class="space-y-2 text-xs text-slate-400">
-            <li><RouterLink to="/industries/ecommerce" class="hover:text-emerald-400 transition-colors">E-Commerce & D2C</RouterLink></li>
-            <li><RouterLink to="/industries/education" class="hover:text-emerald-400 transition-colors">Education & EdTech</RouterLink></li>
-            <li><RouterLink to="/industries/real-estate" class="hover:text-emerald-400 transition-colors">Real Estate & PropTech</RouterLink></li>
-            <li><RouterLink to="/industries/finance" class="hover:text-emerald-400 transition-colors">Finance & Banking</RouterLink></li>
-            <li><RouterLink to="/industries/healthcare" class="hover:text-emerald-400 transition-colors">Healthcare & Clinics</RouterLink></li>
-          </ul>
-        </div>
-
-        <div>
-          <h4 class="text-xs font-semibold text-white uppercase tracking-wider mb-3">Features</h4>
-          <ul class="space-y-2 text-xs text-slate-400">
-            <li><RouterLink to="/services/broadcast" class="hover:text-emerald-400 transition-colors">Broadcast Campaigns</RouterLink></li>
-            <li><RouterLink to="/services/chatbot" class="hover:text-emerald-400 transition-colors">Visual Flow Builder</RouterLink></li>
-            <li><RouterLink to="/services/calling" class="hover:text-emerald-400 transition-colors">Voice Calling & IVR</RouterLink></li>
-            <li><RouterLink to="/services/inbox" class="hover:text-emerald-400 transition-colors">Shared Team Inbox</RouterLink></li>
-            <li><RouterLink to="/services/flows" class="hover:text-emerald-400 transition-colors">WhatsApp Native Flows</RouterLink></li>
-          </ul>
-        </div>
-
-        <div>
-          <h4 class="text-xs font-semibold text-white uppercase tracking-wider mb-3">Company</h4>
-          <ul class="space-y-2.5 text-xs text-slate-400">
-            <li><RouterLink to="/about" class="hover:text-emerald-400 transition-colors">About NexWhat</RouterLink></li>
-            <li><a href="#direct-billing" class="hover:text-emerald-400 transition-colors">Direct Meta Billing</a></li>
-            <li><a href="#pricing" class="hover:text-emerald-400 transition-colors">Subscription Pricing</a></li>
-            <li><a href="#faq" class="hover:text-emerald-400 transition-colors">Platform FAQ</a></li>
-          </ul>
-        </div>
-
-        <div>
-          <h4 class="text-xs font-semibold text-white uppercase tracking-wider mb-3">Legal & Security</h4>
-          <ul class="space-y-2.5 text-xs text-slate-400">
-            <li><RouterLink to="/privacy" class="hover:text-emerald-400 transition-colors">Privacy Policy</RouterLink></li>
-            <li><RouterLink to="/terms" class="hover:text-emerald-400 transition-colors">Terms of Service</RouterLink></li>
-            <li><RouterLink to="/refund" class="hover:text-emerald-400 transition-colors">Refund & Cancellation</RouterLink></li>
-            <li><RouterLink to="/login" class="hover:text-emerald-400 transition-colors">Account Sign In</RouterLink></li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="max-w-7xl mx-auto pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-        <span>© 2026 NexWhat Inc. All rights reserved. Built with Meta Cloud API.</span>
-        <div class="flex gap-6">
-          <RouterLink to="/privacy" class="hover:text-slate-400">Privacy</RouterLink>
-          <RouterLink to="/terms" class="hover:text-slate-400">Terms</RouterLink>
-          <RouterLink to="/refund" class="hover:text-slate-400">Refunds</RouterLink>
-          <RouterLink to="/about" class="hover:text-slate-400">About Us</RouterLink>
-        </div>
-      </div>
-    </footer>
+    <PublicFooter />
   </div>
 </template>
