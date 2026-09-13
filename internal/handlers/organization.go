@@ -475,6 +475,13 @@ func (a *App) CreateOrganization(r *fastglue.Request) error {
 		return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to create organization", nil, "")
 	}
 
+	// Seed sample onboarding flow for the new organization
+	if err := database.SeedSampleFlowForOrg(tx, org.ID, &userID); err != nil {
+		tx.Rollback()
+		a.Log.Error("Failed to seed sample flow", "error", err, "org_id", org.ID)
+		return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to create organization", nil, "")
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		a.Log.Error("Failed to commit transaction", "error", err)
 		return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to create organization", nil, "")

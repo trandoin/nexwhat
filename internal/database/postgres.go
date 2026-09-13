@@ -208,6 +208,12 @@ func RunMigrationWithProgress(db *gorm.DB, adminCfg *config.DefaultAdminConfig) 
 		return err
 	}
 
+	// Seed default sample flow for all organizations
+	if err := SeedDefaultSampleFlows(silentDB); err != nil {
+		fmt.Printf("\n  \033[31m✗ Failed to seed sample flow\033[0m\n\n")
+		return err
+	}
+
 	// Backfill last_inbound_at from existing messages
 	if err := BackfillLastInboundAt(silentDB); err != nil {
 		fmt.Printf("\n  \033[31m✗ Failed to backfill last_inbound_at\033[0m\n\n")
@@ -743,3 +749,159 @@ func SeedDefaultWidgetsForOrg(db *gorm.DB, orgID, userID uuid.UUID) error {
 
 	return nil
 }
+
+// SeedDefaultSampleFlows creates a helpful starter demo flow for all organizations with 0 flows
+func SeedDefaultSampleFlows(db *gorm.DB) error {
+	var orgs []models.Organization
+	if err := db.Find(&orgs).Error; err != nil {
+		return fmt.Errorf("failed to fetch organizations for flow seeding: %w", err)
+	}
+
+	for _, org := range orgs {
+		var count int64
+		db.Model(&models.ChatbotFlow{}).Where("organization_id = ?", org.ID).Count(&count)
+		if count > 0 {
+			continue
+		}
+
+		if err := SeedSampleFlowForOrg(db, org.ID, nil); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SeedSampleFlowForOrg creates a pre-configured, educational sample flow with interactive buttons and branches.
+// Users can preview this flow immediately, modify its nodes, or delete it anytime.
+func SeedSampleFlowForOrg(db *gorm.DB, orgID uuid.UUID, createdByID *uuid.UUID) error {
+	var count int64
+	db.Model(&models.ChatbotFlow{}).Where("organization_id = ?", orgID).Count(&count)
+	if count > 0 {
+		return nil
+	}
+
+	sampleGraph := models.JSONB{
+		"version":    2,
+		"entry_node": "__start__",
+		"nodes": []map[string]any{
+			{
+				"id":       "__start__",
+				"type":     "start",
+				"label":    "Start",
+				"position": map[string]any{"x": 300, "y": 40},
+				"config":   map[string]any{},
+			},
+			{
+				"id":       "node_menu",
+				"type":     "buttons",
+				"label":    "Main Menu",
+				"position": map[string]any{"x": 250, "y": 180},
+				"config": map[string]any{
+					"body": "👋 Welcome {{contact_name}} to *NexWhat*!\n\nThis is a live interactive sample flow. Please pick an option below to test the automated response:",
+					"buttons": []map[string]any{
+						{"id": "btn_services", "title": "Explore Services 🚀"},
+						{"id": "btn_pricing", "title": "Pricing & Plans 💳"},
+						{"id": "btn_agent", "title": "Talk to Human 👤"},
+					},
+				},
+			},
+			{
+				"id":       "node_services",
+				"type":     "message",
+				"label":    "Our Services",
+				"position": map[string]any{"x": 50, "y": 380},
+				"config": map[string]any{
+					"message": "🚀 *NexWhat Core Automation Suite:*\n\n1. 📱 Official WhatsApp Cloud API integration\n2. 🤖 Visual Drag & Drop Interactive Flow Builder\n3. 📢 Broadcast & High-Speed Marketing Campaigns\n4. 👥 Unified Multi-agent Team Live Chat\n5. 💳 Zero markup on Meta conversation fees!",
+				},
+			},
+			{
+				"id":       "node_pricing",
+				"type":     "message",
+				"label":    "Pricing & Plans",
+				"position": map[string]any{"x": 280, "y": 380},
+				"config": map[string]any{
+					"message": "💳 *Transparent Zero-Markup Pricing:*\n\n• *Starter*: ₹299/mo - 5,000 Contacts, 3 Agents\n• *Growth*: ₹599/mo - Unlimited Contacts, 10 Agents\n• *Enterprise*: Custom Scale\n\nDirect Meta Cloud API Model 1 billing — no hidden per-message surcharges!",
+				},
+			},
+			{
+				"id":       "node_agent",
+				"type":     "message",
+				"label":    "Agent Transfer",
+				"position": map[string]any{"x": 510, "y": 380},
+				"config": map[string]any{
+					"message": "👤 *Routing to our Support Team...*\n\nA live support agent has been notified and will assist you shortly. You can reply with your question in the meantime!",
+				},
+			},
+			{
+				"id":       "node_end",
+				"type":     "end",
+				"label":    "Flow Complete",
+				"position": map[string]any{"x": 280, "y": 560},
+				"config": map[string]any{
+					"message": "✨ Thank you for trying out this sample flow! You can customize this flow or build new ones anytime.",
+				},
+			},
+		},
+		"edges": []map[string]any{
+			{
+				"from":      "__start__",
+				"to":        "node_menu",
+				"condition": "default",
+			},
+			{
+				"from":      "node_menu",
+				"to":        "node_services",
+				"condition": "button:btn_services",
+			},
+			{
+				"from":      "node_menu",
+				"to":        "node_pricing",
+				"condition": "button:btn_pricing",
+			},
+			{
+				"from":      "node_menu",
+				"to":        "node_agent",
+				"condition": "button:btn_agent",
+			},
+			{
+				"from":      "node_services",
+				"to":        "node_end",
+				"condition": "default",
+			},
+			{
+				"from":      "node_pricing",
+				"to":        "node_end",
+				"condition": "default",
+			},
+			{
+				"from":      "node_agent",
+				"to":        "node_end",
+				"condition": "default",
+			},
+		},
+	}
+
+	flow := models.ChatbotFlow{
+		BaseModel:          models.BaseModel{ID: uuid.New()},
+		OrganizationID:     orgID,
+		WhatsAppAccount:    "",
+		Name:               "Sample: Welcome & Customer Support Flow",
+		Description:        "Starter interactive flow demonstrating interactive buttons, automated branching, and live preview simulation. You can edit, customize, or delete this flow anytime.",
+		TriggerKeywords:    models.StringArray{"hi", "hello", "help", "support", "menu", "demo"},
+		IsEnabled:          true,
+		InitialMessage:     "👋 Welcome to our WhatsApp Assistant! How can we assist you today?",
+		InitialMessageType: "text",
+		CompletionMessage:  "Thank you for connecting with us! Have a great day.",
+		Graph:              sampleGraph,
+		CreatedByID:        createdByID,
+		UpdatedByID:        createdByID,
+	}
+
+	if err := db.Create(&flow).Error; err != nil {
+		return fmt.Errorf("failed to create default sample flow: %w", err)
+	}
+
+	return nil
+}
+
