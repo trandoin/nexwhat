@@ -184,12 +184,19 @@ export const useAuthStore = defineStore('auth', () => {
       return true
     }
 
+    const roleName = user.value?.role?.name?.toLowerCase() || ''
+    if (roleName === 'admin' || roleName === 'owner' || roleName === 'super admin' || roleName === 'superadmin') {
+      return true
+    }
+
     const permissions = user.value?.role?.permissions
     if (!permissions || permissions.length === 0) {
       return false
     }
 
-    return permissions.some(p => p.resource === resource && p.action === action)
+    return permissions.some(
+      p => p.resource === resource && (p.action === action || p.action === 'manage' || p.action === '*' || (action === 'read' && p.action === 'write'))
+    )
   }
 
   return {

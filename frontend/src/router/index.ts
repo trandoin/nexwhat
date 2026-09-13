@@ -486,6 +486,12 @@ const navigationOrder = [
 
 // Find the first accessible route for the user
 function getFirstAccessibleRoute(authStore: ReturnType<typeof useAuthStore>): string {
+  // If user is super admin or admin/owner, send directly to dashboard
+  const roleName = authStore.user?.role?.name?.toLowerCase() || ''
+  if (authStore.user?.is_super_admin || ['admin', 'owner', 'super admin', 'superadmin'].includes(roleName)) {
+    return '/dashboard'
+  }
+
   for (const item of navigationOrder) {
     // Check if user has permission for this item
     if (authStore.hasPermission(item.permission, 'read')) {
@@ -500,8 +506,8 @@ function getFirstAccessibleRoute(authStore: ReturnType<typeof useAuthStore>): st
       }
     }
   }
-  // Fallback to profile (always accessible)
-  return '/profile'
+  // Fallback to dashboard (if authenticated) or profile
+  return authStore.isAuthenticated ? '/dashboard' : '/profile'
 }
 
 // Navigation guard

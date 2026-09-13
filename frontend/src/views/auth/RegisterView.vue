@@ -99,11 +99,14 @@ const handleRegister = async () => {
       })
     }
     toast.success('Welcome to NexWhat! Your workspace is ready.')
-    router.push('/dashboard')
+    try {
+      await router.push('/dashboard')
+    } catch {
+      window.location.href = '/dashboard'
+    }
   } catch (error: any) {
     const message = error.response?.data?.message || t('auth.registrationFailed')
     toast.error(message)
-  } finally {
     isLoading.value = false
   }
 }

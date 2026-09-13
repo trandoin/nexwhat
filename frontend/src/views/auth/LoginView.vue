@@ -77,12 +77,16 @@ const handleLogin = async () => {
     toast.success(t('auth.loginSuccess'))
 
     const redirect = route.query.redirect as string
-    const target = (redirect && redirect !== '/') ? redirect : '/dashboard'
-    router.push(target)
+    const target = (redirect && redirect !== '/' && redirect !== '/login') ? redirect : '/dashboard'
+    
+    try {
+      await router.push(target)
+    } catch {
+      window.location.href = target
+    }
   } catch (error: any) {
     const message = error.response?.data?.message || t('auth.invalidCredentials')
     toast.error(message)
-  } finally {
     isLoading.value = false
   }
 }
