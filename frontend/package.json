@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && npm --prefix ../admin run build",
+    "build:client": "vite build",
     "typecheck": "vue-tsc --noEmit",
     "test:unit": "vitest run",
     "preview": "vite preview",

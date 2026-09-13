@@ -146,6 +146,13 @@ func Handler(basePath string) fasthttp.RequestHandler {
 
 		// For root or non-existent files (SPA routes), serve modified index.html
 		if path == "/" || (!strings.HasPrefix(path, "/api") && !strings.Contains(path, ".")) {
+			if strings.HasPrefix(path, "/master-portal") {
+				if masterIndex, err := fs.ReadFile(distSubFS, "master-portal/index.html"); err == nil {
+					w.Header().Set("Content-Type", "text/html; charset=utf-8")
+					_, _ = w.Write(masterIndex)
+					return
+				}
+			}
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			_, _ = w.Write(cachedIndexHTML)
 			return

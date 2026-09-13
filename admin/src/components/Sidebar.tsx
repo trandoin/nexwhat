@@ -9,12 +9,19 @@ import {
   LogOut,
   ExternalLink,
   ShieldCheck,
-  CreditCard
+  CreditCard,
+  Lock
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 export const Sidebar: React.FC = () => {
   const { logout, user } = useAuth()
+
+  const handleLockPortal = () => {
+    sessionStorage.removeItem('nexwhat_master_unlocked')
+    logout()
+    window.location.reload()
+  }
 
   const navItems = [
     { to: '/', label: 'Overview', icon: LayoutDashboard },
@@ -28,10 +35,8 @@ export const Sidebar: React.FC = () => {
       {/* Brand Header */}
       <div className="h-16 px-6 flex items-center justify-between border-b border-white/[0.06]">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-[1px] shadow-lg shadow-emerald-500/20">
-            <div className="h-full w-full bg-[#0d111c] rounded-[11px] flex items-center justify-center">
-              <MessageSquare className="h-4 w-4 text-emerald-400" />
-            </div>
+          <div className="relative h-9 w-9 rounded-xl overflow-hidden shadow-lg shadow-emerald-500/20 border border-emerald-500/30 bg-[#0d111c] flex-shrink-0">
+            <img src="/logo.jpg" alt="NexWhat Logo" className="h-full w-full object-cover select-none" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
@@ -115,13 +120,22 @@ export const Sidebar: React.FC = () => {
               <p className="text-[10px] text-emerald-400 font-mono truncate">{user?.role || 'super_admin'}</p>
             </div>
           </div>
-          <button
-            onClick={logout}
-            title="Log Out"
-            className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors shrink-0"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={handleLockPortal}
+              title="Lock Master Portal (Re-arm Secret Gate)"
+              className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
+            >
+              <Lock className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={logout}
+              title="Log Out Session"
+              className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </aside>

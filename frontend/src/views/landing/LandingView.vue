@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import PublicNavbar from '@/components/layout/PublicNavbar.vue'
 import NexWhatLogo from '@/components/common/NexWhatLogo.vue'
+import { usePlansStore } from '@/stores/plans'
 import {
   MessageSquare,
   Sparkles,
@@ -23,21 +24,24 @@ import {
 } from 'lucide-vue-next'
 
 const router = useRouter()
+const plansStore = usePlansStore()
+
+onMounted(() => {
+  plansStore.refreshPlans()
+})
 
 // Pricing Billing Cycle & Currency Toggle
 const isAnnual = ref(true)
 const currency = ref<'INR' | 'USD'>('INR')
 
-const pricingDisplay = computed(() => {
+function getPlanPrice(plan: any) {
   const isUsd = currency.value === 'USD'
-  return {
-    symbol: isUsd ? '$' : '₹',
-    starter: isUsd ? (isAnnual.value ? '3.2' : '4') : (isAnnual.value ? '239' : '299'),
-    growth: isUsd ? (isAnnual.value ? '6.4' : '8') : (isAnnual.value ? '479' : '599'),
-    pro: isUsd ? (isAnnual.value ? '10.4' : '13') : (isAnnual.value ? '799' : '999'),
-    period: '/ month'
+  const inrPrice = isAnnual.value ? plan.annualPrice : plan.monthlyPrice
+  if (isUsd) {
+    return (inrPrice / 75).toFixed(1)
   }
-})
+  return inrPrice
+}
 
 // Interactive ROI Calculator State
 const contactCount = ref(15000)
@@ -627,139 +631,56 @@ const faqs = [
         </div>
 
         <div class="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
-          <!-- Starter Plan -->
-          <div class="p-8 rounded-3xl bg-white/[0.02] border border-white/[0.08] flex flex-col justify-between hover:border-white/20 transition-all">
-            <div>
-              <div class="text-lg font-bold text-white mb-2">Starter</div>
-              <p class="text-xs text-white/50 mb-6">For startups and small stores launching WhatsApp marketing.</p>
-              <div class="flex items-baseline gap-1 mb-6">
-                <span class="text-4xl font-extrabold text-white">{{ pricingDisplay.symbol }}{{ pricingDisplay.starter }}</span>
-                <span class="text-xs text-white/40">{{ pricingDisplay.period }}</span>
-              </div>
-
-              <ul class="space-y-3 text-xs text-white/70 mb-8">
-                <li class="flex items-center gap-2">
-                  <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>1 WhatsApp Business Number</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>Up to 2,500 Contacts</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>2 Team Agent Seats</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>Broadcast Campaigns & CSV Imports</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>Direct Meta Billing (0% Markup)</span>
-                </li>
-              </ul>
-            </div>
-
-            <RouterLink
-              to="/register?plan=starter"
-              class="w-full py-2.5 px-4 text-center text-xs font-semibold rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white transition-all"
+          <div
+            v-for="plan in plansStore.plans"
+            :key="plan.id"
+            :class="[
+              'p-8 rounded-3xl flex flex-col justify-between transition-all relative',
+              plan.popular
+                ? 'bg-gradient-to-b from-emerald-500/10 to-transparent border-2 border-emerald-500/40 shadow-2xl shadow-emerald-500/10'
+                : 'bg-white/[0.02] border border-white/[0.08] hover:border-white/20'
+            ]"
+          >
+            <div
+              v-if="plan.popular"
+              class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-emerald-500 text-neutral-950 font-bold text-[10px] uppercase tracking-wider shadow"
             >
-              Start 14-Day Trial
-            </RouterLink>
-          </div>
-
-          <!-- Growth Plan (Featured) -->
-          <div class="p-8 rounded-3xl bg-gradient-to-b from-emerald-500/10 to-transparent border-2 border-emerald-500/40 relative shadow-2xl shadow-emerald-500/10 flex flex-col justify-between">
-            <div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-emerald-500 text-neutral-950 font-bold text-[10px] uppercase tracking-wider shadow">
               Most Popular
             </div>
 
             <div>
-              <div class="text-lg font-bold text-white mb-2">Growth</div>
-              <p class="text-xs text-white/50 mb-6">For scaling D2C, ecommerce, and high-growth businesses.</p>
+              <div class="text-lg font-bold text-white mb-2">{{ plan.name }}</div>
+              <p class="text-xs text-white/50 mb-6 min-h-[32px]">{{ plan.description }}</p>
+
               <div class="flex items-baseline gap-1 mb-6">
-                <span class="text-4xl font-extrabold text-white">{{ pricingDisplay.symbol }}{{ pricingDisplay.growth }}</span>
-                <span class="text-xs text-white/40">{{ pricingDisplay.period }}</span>
+                <span class="text-4xl font-extrabold text-white">
+                  {{ currency === 'USD' ? '$' : '₹' }}{{ getPlanPrice(plan) }}
+                </span>
+                <span class="text-xs text-white/40">/ month</span>
               </div>
 
               <ul class="space-y-3 text-xs text-white/80 mb-8">
-                <li class="flex items-center gap-2">
-                  <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>2 WhatsApp Business Numbers</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>Up to 25,000 Contacts</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>5 Team Agent Seats</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>Visual Chatbot Flow Builder</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>WhatsApp Voice Calling & IVR</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>Direct Meta Billing (0% Markup)</span>
+                <li
+                  v-for="(feat, idx) in plan.features"
+                  :key="idx"
+                  class="flex items-center gap-2"
+                  :class="feat.included ? 'text-white/80' : 'text-white/30'"
+                >
+                  <CheckCircle2 v-if="feat.included" class="h-4 w-4 text-emerald-400 shrink-0" />
+                  <span v-else class="h-4 w-4 rounded-full border border-white/20 flex items-center justify-center text-[9px] text-white/40 shrink-0">✕</span>
+                  <span>{{ feat.name }}</span>
                 </li>
               </ul>
             </div>
 
             <RouterLink
-              to="/register?plan=growth"
-              class="w-full py-3 px-4 text-center text-xs font-semibold rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25 hover:brightness-110 active:scale-95 transition-all"
-            >
-              Start 14-Day Trial
-            </RouterLink>
-          </div>
-
-          <!-- Pro Plan (Max 999) -->
-          <div class="p-8 rounded-3xl bg-white/[0.02] border border-white/[0.08] flex flex-col justify-between hover:border-white/20 transition-all">
-            <div>
-              <div class="text-lg font-bold text-white mb-2">Pro Max</div>
-              <p class="text-xs text-white/50 mb-6">Unlimited scale for demanding high-volume operations.</p>
-              <div class="flex items-baseline gap-1 mb-6">
-                <span class="text-4xl font-extrabold text-white">{{ pricingDisplay.symbol }}{{ pricingDisplay.pro }}</span>
-                <span class="text-xs text-white/40">{{ pricingDisplay.period }}</span>
-              </div>
-
-              <ul class="space-y-3 text-xs text-white/70 mb-8">
-                <li class="flex items-center gap-2">
-                  <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>5 WhatsApp Business Numbers</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>Unlimited Contacts & Broadcasts</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>15 Team Agent Seats</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>Custom Inbound Webhooks</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>Role-Based Permissions Matrix</span>
-                </li>
-                <li class="flex items-center gap-2">
-                  <CheckCircle2 class="h-4 w-4 text-emerald-400" />
-                  <span>Priority 24/7 SLA Support</span>
-                </li>
-              </ul>
-            </div>
-
-            <RouterLink
-              to="/register?plan=pro"
-              class="w-full py-2.5 px-4 text-center text-xs font-semibold rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-white transition-all"
+              :to="`/register?plan=${plan.id}`"
+              :class="[
+                'w-full text-center text-xs font-semibold rounded-xl transition-all',
+                plan.popular
+                  ? 'py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25 hover:brightness-110 active:scale-95 font-bold'
+                  : 'py-2.5 px-4 bg-white/[0.06] hover:bg-white/[0.12] text-white'
+              ]"
             >
               Start 14-Day Trial
             </RouterLink>

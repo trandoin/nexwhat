@@ -23,7 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from '@/components/ui/alert-dialog'
-import { LogOut, User } from 'lucide-vue-next'
+import { LogOut, User, CreditCard } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import { getInitials } from '@/lib/utils'
 import ThemeSwitcher from './ThemeSwitcher.vue'
@@ -224,6 +224,16 @@ const handleLogout = () => {
           >
             <User class="mr-2 h-3.5 w-3.5" aria-hidden="true" />
             <span>{{ $t('userMenu.profile') }}</span>
+          </Button>
+        </RouterLink>
+        <RouterLink to="/settings/billing">
+          <Button
+            variant="ghost"
+            class="w-full justify-start px-2 py-1 h-auto text-[13px] font-normal text-white/70 hover:text-white hover:bg-white/[0.04] light:text-gray-600 light:hover:text-gray-900 light:hover:bg-gray-100"
+            @click="isUserMenuOpen = false"
+          >
+            <CreditCard class="mr-2 h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
+            <span>Subscription & Billing</span>
           </Button>
         </RouterLink>
         <Separator class="my-1 bg-white/[0.08] light:bg-gray-200" />

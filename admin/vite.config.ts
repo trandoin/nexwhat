@@ -3,7 +3,12 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({
+  base: '/master-portal/',
   plugins: [react()],
+  build: {
+    outDir: '../frontend/dist/master-portal',
+    emptyOutDir: true
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')
@@ -13,10 +18,11 @@ export default defineConfig({
     port: 3001,
     proxy: {
       '/api': {
-        target: 'https://nexwhat.vegitofresh.com',
+        target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false
       }
     }
   }
 })
+

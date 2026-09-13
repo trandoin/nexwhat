@@ -116,6 +116,10 @@ frontend-build:
 		echo "Installing frontend dependencies..."; \
 		cd frontend && npm install; \
 	fi
+	@if [ ! -d "admin/node_modules" ]; then \
+		echo "Installing admin dependencies..."; \
+		cd admin && npm install; \
+	fi
 	cd frontend && npm run build
 
 frontend-preview:

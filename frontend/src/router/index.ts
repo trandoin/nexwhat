@@ -271,6 +271,12 @@ const router = createRouter({
           meta: { permission: 'settings.general' }
         },
         {
+          path: 'settings/billing',
+          name: 'billing-settings',
+          component: () => import('@/views/settings/BillingView.vue'),
+          meta: { permission: 'settings.general' }
+        },
+        {
           path: 'settings/chatbot',
           name: 'chatbot-settings',
           component: () => import('@/views/settings/ChatbotSettingsView.vue'),
@@ -511,32 +517,33 @@ router.beforeEach((to, _from, next) => {
     authStore.restoreSession()
   }
 
-  // Handle public landing page (root path '/' or route named 'landing')
-  if (to.path === '/' || to.name === 'landing') {
-    if (authStore.isAuthenticated) {
-      return next({ path: getFirstAccessibleRoute(authStore) })
-    }
-    return next()
-  }
+  // Check if target route is public (explicitly requiresAuth: false or landing page)
+  const isPublicRoute =
+    to.path === '/' ||
+    to.name === 'landing' ||
+    to.meta.requiresAuth === false ||
+    to.matched.some(record => record.meta?.requiresAuth === false)
 
-  // Handle public auth pages when already logged in
+  // For login or register pages, if user is already authenticated, redirect to dashboard
   if (authStore.isAuthenticated && (to.name === 'login' || to.name === 'register')) {
     return next({ path: getFirstAccessibleRoute(authStore) })
   }
 
-  // Check if route requires auth
-  if (to.meta.requiresAuth !== false) {
-    if (!authStore.isAuthenticated) {
-      return next({ name: 'login', query: { redirect: to.fullPath } })
-    }
+  // Public pages (landing, about, services, industries, legal) NEVER redirect to login
+  if (isPublicRoute) {
+    return next()
+  }
 
-    // Check permission-based access
-    const requiredPermission = to.meta.permission
-    if (requiredPermission) {
-      if (!authStore.hasPermission(requiredPermission, 'read')) {
-        // Redirect to first accessible page
-        return next({ path: getFirstAccessibleRoute(authStore) })
-      }
+  // Protected routes: redirect to login if not authenticated
+  if (!authStore.isAuthenticated) {
+    return next({ name: 'login', query: { redirect: to.fullPath } })
+  }
+
+  // Check permission-based access for protected routes
+  const requiredPermission = to.meta.permission
+  if (requiredPermission) {
+    if (!authStore.hasPermission(requiredPermission, 'read')) {
+      return next({ path: getFirstAccessibleRoute(authStore) })
     }
   }
 

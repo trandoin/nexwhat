@@ -7,6 +7,7 @@ import { Dashboard } from './pages/Dashboard'
 import { Organizations } from './pages/Organizations'
 import { Plans } from './pages/Plans'
 import { Permissions } from './pages/Permissions'
+import { SecretGate } from './components/SecretGate'
 
 // Protected Route Guard
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -29,29 +30,31 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 export const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
+    <SecretGate>
+      <AuthProvider>
+        <BrowserRouter basename="/master-portal">
+          <Routes>
+            <Route path="/login" element={<Login />} />
 
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Dashboard />} />
-            <Route path="organizations" element={<Organizations />} />
-            <Route path="plans" element={<Plans />} />
-            <Route path="permissions" element={<Permissions />} />
-          </Route>
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="organizations" element={<Organizations />} />
+              <Route path="plans" element={<Plans />} />
+              <Route path="permissions" element={<Permissions />} />
+            </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </SecretGate>
   )
 }
 

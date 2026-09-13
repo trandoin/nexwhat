@@ -22,11 +22,13 @@ import {
   Sparkles
 } from 'lucide-vue-next'
 import NexWhatLogo from '@/components/common/NexWhatLogo.vue'
+import { usePlansStore } from '@/stores/plans'
 
 const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const plansStore = usePlansStore()
 
 const companyName = ref('')
 const fullName = ref('')
@@ -39,9 +41,19 @@ const organizationId = computed(() => (route.query.org as string) || '')
 const isInviteMode = computed(() => !!organizationId.value)
 const selectedPlan = computed(() => {
   const p = (route.query.plan as string || '').toLowerCase()
-  if (p === 'starter') return { name: 'Starter Plan', price: '₹299/mo', badge: 'bg-blue-500/20 text-blue-300 border-blue-500/30' }
-  if (p === 'growth') return { name: 'Growth Plan', price: '₹599/mo', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' }
-  if (p === 'pro' || p === 'promax') return { name: 'Pro Max Plan', price: '₹999/mo', badge: 'bg-purple-500/20 text-purple-300 border-purple-500/30' }
+  const matched = plansStore.plans.find(plan => plan.id === p || (p === 'promax' && plan.id === 'pro'))
+  if (matched) {
+    const badgeColors: Record<string, string> = {
+      starter: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
+      growth: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+      pro: 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+    }
+    return {
+      name: `${matched.name} Plan`,
+      price: `₹${matched.monthlyPrice}/mo`,
+      badge: badgeColors[matched.id] || 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+    }
+  }
   return null
 })
 

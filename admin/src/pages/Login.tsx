@@ -39,10 +39,8 @@ export const Login: React.FC = () => {
 
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 p-[1px] shadow-xl shadow-emerald-500/20 mb-4">
-            <div className="h-full w-full bg-[#0b0e17] rounded-[15px] flex items-center justify-center">
-              <MessageSquare className="h-6 w-6 text-emerald-400" />
-            </div>
+          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl overflow-hidden shadow-2xl shadow-emerald-500/25 border border-emerald-500/40 mb-4 p-0.5 bg-gradient-to-tr from-emerald-500/40 to-teal-400/40">
+            <img src="/logo.jpg" alt="NexWhat Luxury Logo" className="h-full w-full object-cover rounded-[14px]" />
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">NexWhat Super Admin</h1>
           <p className="text-xs text-slate-400 mt-1">

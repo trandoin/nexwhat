@@ -14,14 +14,15 @@ import {
   MessageSquareText,
   Webhook,
   BarChart3,
+  Shield,
   ShieldCheck,
   Zap,
-  Shield,
   LineChart,
   Tags,
   PhoneCall,
   PhoneForwarded,
-  ScrollText
+  ScrollText,
+  CreditCard
 } from 'lucide-vue-next'
 import type { Component } from 'vue'
 
@@ -140,6 +141,7 @@ export const navigationSections: NavSection[] = [
         childPermissions: ['settings.general', 'settings.chatbot', 'accounts', 'contacts', 'canned_responses', 'tags', 'teams', 'users', 'roles', 'api_keys', 'webhooks', 'custom_actions', 'settings.sso', 'audit_logs'],
         children: [
           { name: 'nav.general', path: '/settings', icon: Settings, permission: 'settings.general' },
+          { name: 'nav.billing', path: '/settings/billing', icon: CreditCard, permission: 'settings.general' },
           { name: 'nav.chatbot', path: '/settings/chatbot', icon: Bot, permission: 'settings.chatbot' },
           { name: 'nav.accounts', path: '/settings/accounts', icon: Users, permission: 'accounts' },
           { name: 'nav.contacts', path: '/settings/contacts', icon: Contact, permission: 'contacts' },
