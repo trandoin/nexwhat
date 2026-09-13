@@ -99,9 +99,11 @@ jobs:
           local_path = "./uploads"
           EOF
 
-      # Build frontend FIRST so it can be embedded in the backend
-      - name: Install frontend dependencies
-        run: cd frontend && npm ci
+      # Build frontend & admin FIRST so it can be embedded in the backend
+      - name: Install frontend & admin dependencies
+        run: |
+          cd frontend && npm ci
+          cd ../admin && npm ci
 
       - name: Build frontend
         run: cd frontend && npm run build

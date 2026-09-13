@@ -1,15 +1,18 @@
-# Frontend build stage — pinned to BUILDPLATFORM (output is arch-agnostic JS).
+# Frontend and Admin build stage — pinned to BUILDPLATFORM (output is arch-agnostic JS).
 FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend-builder
 
-WORKDIR /app/frontend
+WORKDIR /app
 
-# Copy frontend dependency files first for caching
-COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+# Copy dependency files for caching
+COPY frontend/package.json frontend/package-lock.json ./frontend/
+COPY admin/package.json admin/package-lock.json ./admin/
+RUN cd frontend && npm ci
+RUN cd admin && npm ci
 
-# Copy frontend source and build
-COPY frontend/ .
-RUN npm run build
+# Copy source code and build
+COPY frontend/ ./frontend/
+COPY admin/ ./admin/
+RUN cd frontend && npm run build
 
 # Go build stage — runs on BUILDPLATFORM, cross-compiles to TARGETOS/TARGETARCH
 # so multi-arch builds don't emulate the Go toolchain under QEMU.
