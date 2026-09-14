@@ -94,7 +94,8 @@ func (a *App) GetAdminOverview(r *fastglue.Request) error {
 			}
 		}
 
-		if status == "active" {
+		switch status {
+		case "active":
 			activeOrgs++
 			switch plan {
 			case "starter":
@@ -107,7 +108,7 @@ func (a *App) GetAdminOverview(r *fastglue.Request) error {
 				growthCount++
 				estimatedMRR += 599
 			}
-		} else if status == "trial" {
+		case "trial":
 			switch plan {
 			case "starter":
 				starterCount++
