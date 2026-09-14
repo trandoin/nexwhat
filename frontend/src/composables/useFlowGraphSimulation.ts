@@ -186,7 +186,9 @@ export function useFlowGraphSimulation(
 
     log('flow_start', undefined, { nodeCount: g.nodes.length })
 
-    if (flowData.value.initial_message) {
+    // In v2 graph flows, the entry node on the visual canvas handles the greeting.
+    // Only emit initial_message if the graph has no visual nodes.
+    if (flowData.value.initial_message && (!g || g.nodes.length <= 1)) {
       addMessage('bot', flowData.value.initial_message)
       await delay(300)
     }
@@ -483,7 +485,9 @@ export function useFlowGraphSimulation(
   }
 
   function complete(): void {
-    if (flowData.value.completion_message) {
+    const lastNode = state.currentStepName ? nodeById(state.currentStepName) : null
+    const hasEndNodeMessage = lastNode && lastNode.type === 'end' && !!stringField(lastNode, 'message')
+    if (flowData.value.completion_message && !hasEndNodeMessage) {
       addMessage('bot', flowData.value.completion_message)
     }
     addMessage('system', 'Flow completed')
