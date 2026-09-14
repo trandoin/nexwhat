@@ -197,7 +197,7 @@ export const adminApi = {
     return res.data?.data || res.data
   },
   updateOrganization: async (id: string, data: { name?: string; plan_tier?: string; status?: string }) => {
-    const res = await apiClient.patch(`/admin/organizations/${id}`, data)
+    const res = await apiClient.put(`/admin/organizations/${id}`, data)
     return res.data?.data || res.data
   },
   linkWhatsApp: async (id: string, data: { phone_id: string; business_id: string; access_token: string; name?: string; app_id?: string; app_secret?: string; webhook_verify_token?: string }) => {
@@ -209,7 +209,7 @@ export const adminApi = {
     return res.data?.data || res.data
   },
   updateSetupRequest: async (id: string, data: { status: string; notes?: string }) => {
-    const res = await apiClient.patch(`/admin/setup-requests/${id}`, data)
+    const res = await apiClient.put(`/admin/setup-requests/${id}`, data)
     return res.data?.data || res.data
   }
 }

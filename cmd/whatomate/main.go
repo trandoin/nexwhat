@@ -871,10 +871,10 @@ func setupRoutes(g *fastglue.Fastglue, app *handlers.App, lo logf.Logger, basePa
 	g.GET("/api/admin/overview", app.GetAdminOverview)
 	g.GET("/api/admin/organizations", app.ListAdminOrganizations)
 	g.POST("/api/admin/organizations", app.CreateAdminOrganization)
-	g.PATCH("/api/admin/organizations/{id}", app.UpdateAdminOrganization)
+	g.PUT("/api/admin/organizations/{id}", app.UpdateAdminOrganization)
 	g.POST("/api/admin/organizations/{id}/link-whatsapp", app.AdminLinkWhatsApp)
 	g.GET("/api/admin/setup-requests", app.ListAdminSetupRequests)
-	g.PATCH("/api/admin/setup-requests/{id}", app.UpdateAdminSetupRequest)
+	g.PUT("/api/admin/setup-requests/{id}", app.UpdateAdminSetupRequest)
 
 	// Serve embedded frontend (SPA)
 	if frontend.IsEmbedded() {
