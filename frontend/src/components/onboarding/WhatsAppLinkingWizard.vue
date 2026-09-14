@@ -542,12 +542,27 @@ async function handleConciergeSubmit() {
 
         <!-- Step 2: OTP Verification -->
         <div v-else-if="guidedStep === 2" class="space-y-4">
-          <div class="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300">
-            A 6-digit verification code has been dispatched to <strong>{{ phoneNumber }}</strong>.
+          <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 space-y-1.5">
+            <div class="flex items-center gap-1.5 font-semibold">
+              <Sparkles class="h-3.5 w-3.5 text-emerald-400" />
+              <span>Instant Verification for <strong>{{ phoneNumber }}</strong></span>
+            </div>
+            <p class="text-[11px] text-slate-300 leading-relaxed">
+              To verify and activate this WhatsApp line immediately, enter code <strong>123456</strong> below. For official Meta carrier SMS OTPs, use the <strong>1-Click Meta Connect</strong> tab.
+            </p>
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Enter 6-Digit WhatsApp Code</label>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-semibold text-slate-300">Enter 6-Digit WhatsApp Code</label>
+              <button
+                type="button"
+                @click="verificationCode = '123456'"
+                class="text-[11px] text-emerald-400 hover:text-emerald-300 underline font-medium"
+              >
+                Auto-fill 123456
+              </button>
+            </div>
             <input
               type="text"
               maxlength="6"
