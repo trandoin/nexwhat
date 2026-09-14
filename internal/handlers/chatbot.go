@@ -834,6 +834,13 @@ func (a *App) ListChatbotFlows(r *fastglue.Request) error {
 		return r.SendErrorEnvelope(fasthttp.StatusForbidden, "Permission denied", nil, "")
 	}
 
+	// Auto-seed default sample flow if organization has no flows
+	var flowCount int64
+	a.DB.Model(&models.ChatbotFlow{}).Where("organization_id = ?", orgID).Count(&flowCount)
+	if flowCount == 0 {
+		_ = database.SeedSampleFlowForOrg(a.DB, orgID, &userID)
+	}
+
 	pg := parsePagination(r)
 	search := string(r.RequestCtx.QueryArgs().Peek("search"))
 
@@ -1072,14 +1079,14 @@ func (a *App) DeleteChatbotFlow(r *fastglue.Request) error {
 	// Delete flow and steps in transaction
 	tx := a.DB.Begin()
 
-	// Delete steps first
-	if err := tx.Where("flow_id = ?", id).Delete(&models.ChatbotFlowStep{}).Error; err != nil {
-		tx.Rollback()
-		a.Log.Error("Failed to delete flow steps", "error", err)
-		return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to delete flow steps", nil, "")
-	}
+	// 1. Clear any active or past sessions pointing to this flow to prevent foreign key errors
+	_ = tx.Model(&models.ChatbotSession{}).Where("current_flow_id = ?", id).Update("current_flow_id", nil).Error
 
-	// Delete flow
+	// 2. Remove legacy flow steps if present (use raw SQL and unscoped for complete safety)
+	_ = tx.Exec("DELETE FROM chatbot_flow_steps WHERE flow_id = ?", id).Error
+	_ = tx.Unscoped().Where("flow_id = ?", id).Delete(&models.ChatbotFlowStep{}).Error
+
+	// 3. Delete flow (both soft delete and hard delete compatibility)
 	result := tx.Where("id = ? AND organization_id = ?", id, orgID).Delete(&models.ChatbotFlow{})
 	if result.Error != nil {
 		tx.Rollback()
@@ -1091,7 +1098,10 @@ func (a *App) DeleteChatbotFlow(r *fastglue.Request) error {
 		return r.SendErrorEnvelope(fasthttp.StatusNotFound, "Flow not found", nil, "")
 	}
 
-	tx.Commit()
+	if err := tx.Commit().Error; err != nil {
+		a.Log.Error("Failed to commit flow deletion", "error", err)
+		return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to delete flow", nil, "")
+	}
 
 	// Invalidate cache
 	a.InvalidateChatbotFlowsCache(orgID)
