@@ -68,12 +68,12 @@ func (a *App) GetAdminOverview(r *fastglue.Request) error {
 		return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to load overview data", nil, "")
 	}
 
-	var activeOrgs int64 = 0
-	var starterCount int64 = 0
-	var growthCount int64 = 0
-	var proCount int64 = 0
-	var estimatedMRR int64 = 0
-	var pendingRequestsCount int64 = 0
+	var activeOrgs int64
+	var starterCount int64
+	var growthCount int64
+	var proCount int64
+	var estimatedMRR int64
+	var pendingRequestsCount int64
 
 	orgResponses := make([]AdminOrgResponse, 0, len(orgs))
 
@@ -119,16 +119,16 @@ func (a *App) GetAdminOverview(r *fastglue.Request) error {
 		}
 
 		var membersCount int64
-		a.DB.Model(&models.User{}).Where("organization_id = ?", org.ID).Count(&membersCount)
+		_ = a.DB.Model(&models.User{}).Where("organization_id = ?", org.ID).Count(&membersCount)
 
 		var contactsCount int64
-		a.DB.Model(&models.Contact{}).Where("organization_id = ?", org.ID).Count(&contactsCount)
+		_ = a.DB.Model(&models.Contact{}).Where("organization_id = ?", org.ID).Count(&contactsCount)
 
 		var messagesCount int64
-		a.DB.Model(&models.Message{}).Where("organization_id = ?", org.ID).Count(&messagesCount)
+		_ = a.DB.Model(&models.Message{}).Where("organization_id = ?", org.ID).Count(&messagesCount)
 
 		var waAccounts []models.WhatsAppAccount
-		a.DB.Where("organization_id = ?", org.ID).Find(&waAccounts)
+		_ = a.DB.Where("organization_id = ?", org.ID).Find(&waAccounts)
 
 		wabaID := ""
 		phoneID := ""
@@ -140,7 +140,7 @@ func (a *App) GetAdminOverview(r *fastglue.Request) error {
 			wabaID = "waba_" + org.ID.String()[:8]
 		}
 
-		var setupReq any = nil
+		var setupReq any
 		if org.Settings != nil {
 			setupReq = org.Settings["assisted_setup_request"]
 		}
@@ -215,16 +215,16 @@ func (a *App) ListAdminOrganizations(r *fastglue.Request) error {
 		}
 
 		var membersCount int64
-		a.DB.Model(&models.User{}).Where("organization_id = ?", org.ID).Count(&membersCount)
+		_ = a.DB.Model(&models.User{}).Where("organization_id = ?", org.ID).Count(&membersCount)
 
 		var contactsCount int64
-		a.DB.Model(&models.Contact{}).Where("organization_id = ?", org.ID).Count(&contactsCount)
+		_ = a.DB.Model(&models.Contact{}).Where("organization_id = ?", org.ID).Count(&contactsCount)
 
 		var messagesCount int64
-		a.DB.Model(&models.Message{}).Where("organization_id = ?", org.ID).Count(&messagesCount)
+		_ = a.DB.Model(&models.Message{}).Where("organization_id = ?", org.ID).Count(&messagesCount)
 
 		var waAccounts []models.WhatsAppAccount
-		a.DB.Where("organization_id = ?", org.ID).Find(&waAccounts)
+		_ = a.DB.Where("organization_id = ?", org.ID).Find(&waAccounts)
 
 		wabaID := ""
 		phoneID := ""
@@ -236,7 +236,7 @@ func (a *App) ListAdminOrganizations(r *fastglue.Request) error {
 			wabaID = "waba_" + org.ID.String()[:8]
 		}
 
-		var setupReq any = nil
+		var setupReq any
 		if org.Settings != nil {
 			setupReq = org.Settings["assisted_setup_request"]
 		}

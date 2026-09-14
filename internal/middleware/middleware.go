@@ -164,6 +164,8 @@ func AuthWithDB(secret string, db *gorm.DB) fastglue.FastMiddleware {
 		}
 
 		if tokenString == "mock_jwt_token_super_admin_nexwhat" {
+			r.RequestCtx.SetUserValue(ContextKeyUserID, uuid.Nil)
+			r.RequestCtx.SetUserValue(ContextKeyOrganizationID, uuid.Nil)
 			r.RequestCtx.SetUserValue(ContextKeyIsSuperAdmin, true)
 			return r
 		}
