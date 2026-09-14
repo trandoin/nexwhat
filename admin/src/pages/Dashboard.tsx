@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Building2,
@@ -14,21 +14,48 @@ import {
   ArrowRight
 } from 'lucide-react'
 import { StatCard } from '../components/StatCard'
-import { INITIAL_ORGS, DEFAULT_PLANS } from '../services/api'
+import { apiClient, INITIAL_ORGS, DEFAULT_PLANS } from '../services/api'
 
 export const Dashboard: React.FC = () => {
-  // Compute metrics from sample/stored data
-  const totalOrgs = INITIAL_ORGS.length
-  const activeOrgs = INITIAL_ORGS.filter(o => o.status === 'active').length
+  const [metrics, setMetrics] = useState({
+    totalOrgs: INITIAL_ORGS.length,
+    activeOrgs: INITIAL_ORGS.filter(o => o.status === 'active').length,
+    totalContacts: INITIAL_ORGS.reduce((acc, curr) => acc + (curr.contacts_count || 0), 0),
+    totalMessages: INITIAL_ORGS.reduce((acc, curr) => acc + (curr.messages_sent || 0), 0),
+    estimatedMRR: 2795,
+    organizations: INITIAL_ORGS
+  })
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Calculate MRR based on plans
-  const starterCount = INITIAL_ORGS.filter(o => o.plan_tier === 'starter').length
-  const growthCount = INITIAL_ORGS.filter(o => o.plan_tier === 'growth').length
-  const proCount = INITIAL_ORGS.filter(o => o.plan_tier === 'pro').length
+  useEffect(() => {
+    apiClient.get('/admin/overview')
+      .then(res => {
+        const data = res.data?.data || res.data
+        if (data && data.organizations) {
+          setMetrics({
+            totalOrgs: data.total_orgs,
+            activeOrgs: data.active_orgs,
+            totalContacts: data.total_contacts,
+            totalMessages: data.total_messages,
+            estimatedMRR: data.estimated_mrr,
+            organizations: data.organizations
+          })
+        }
+      })
+      .catch(err => console.warn('Admin overview live fetch fallback:', err))
+      .finally(() => setIsLoading(false))
+  }, [])
 
-  const mrr = (starterCount * 299) + (growthCount * 599) + (proCount * 999)
-  const totalContacts = INITIAL_ORGS.reduce((acc, curr) => acc + (curr.contacts_count || 0), 0)
-  const totalMessages = INITIAL_ORGS.reduce((acc, curr) => acc + (curr.messages_sent || 0), 0)
+  const totalOrgs = metrics.totalOrgs
+  const activeOrgs = metrics.activeOrgs
+  const mrr = metrics.estimatedMRR
+  const totalContacts = metrics.totalContacts
+  const totalMessages = metrics.totalMessages
+
+  const orgsList = metrics.organizations || []
+  const starterCount = orgsList.filter(o => (o.plan_tier as string) === 'starter').length
+  const growthCount = orgsList.filter(o => (o.plan_tier as string) === 'growth' || !o.plan_tier).length
+  const proCount = orgsList.filter(o => (o.plan_tier as string) === 'pro' || (o.plan_tier as string) === 'enterprise').length
 
   return (
     <div className="space-y-8">

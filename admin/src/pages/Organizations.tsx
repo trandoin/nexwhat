@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Building2,
   Search,
@@ -20,7 +20,7 @@ import {
   Headphones
 } from 'lucide-react'
 import { Organization } from '../types'
-import { INITIAL_ORGS, DEFAULT_PLANS } from '../services/api'
+import { apiClient, INITIAL_ORGS, DEFAULT_PLANS } from '../services/api'
 
 export const Organizations: React.FC = () => {
   const [orgs, setOrgs] = useState<Organization[]>(INITIAL_ORGS)
@@ -32,6 +32,30 @@ export const Organizations: React.FC = () => {
   const [isNewOrgModalOpen, setIsNewOrgModalOpen] = useState(false)
   const [newOrgName, setNewOrgName] = useState('')
   const [newOrgPlan, setNewOrgPlan] = useState<'starter' | 'growth' | 'pro'>('growth')
+
+  useEffect(() => {
+    apiClient.get('/admin/overview')
+      .then(res => {
+        const data = res.data?.data || res.data
+        if (data && data.organizations?.length) {
+          const mapped: Organization[] = data.organizations.map((org: any) => ({
+            id: org.id,
+            name: org.name,
+            slug: org.slug,
+            plan_tier: org.plan_tier || 'growth',
+            status: org.status || 'active',
+            team_seats: org.team_seats || 1,
+            whatsapp_numbers: org.whatsapp_lines || 1,
+            contacts_count: org.contacts_count || 0,
+            messages_sent: org.messages_sent || 0,
+            waba_id: `waba_${org.id?.slice(0, 8)}`,
+            created_at: org.created_at
+          }))
+          setOrgs(mapped)
+        }
+      })
+      .catch(err => console.warn('Organizations live fetch fallback:', err))
+  }, [])
 
   // Assisted WhatsApp Linking Modal State
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
