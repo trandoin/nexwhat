@@ -1073,31 +1073,35 @@ func (a *App) DeleteChatbotFlow(r *fastglue.Request) error {
 		return nil
 	}
 
-	// Load flow for audit before deleting
-	var flowForAudit models.ChatbotFlow
-	a.DB.Where("id = ? AND organization_id = ?", id, orgID).First(&flowForAudit)
+	// Check if the flow exists under this org (or user is super admin)
+	var flow models.ChatbotFlow
+	if err := a.DB.Where("id = ? AND organization_id = ?", id, orgID).First(&flow).Error; err != nil {
+		// If not found with orgID, check if user is super admin
+		isSuperAdmin, _ := r.RequestCtx.UserValue("is_super_admin").(bool)
+		if isSuperAdmin {
+			if err := a.DB.Where("id = ?", id).First(&flow).Error; err != nil {
+				return r.SendErrorEnvelope(fasthttp.StatusNotFound, "Flow not found", nil, "")
+			}
+			orgID = flow.OrganizationID
+		} else {
+			return r.SendErrorEnvelope(fasthttp.StatusNotFound, "Flow not found", nil, "")
+		}
+	}
 
-	// Delete flow and steps in transaction
+	// Delete flow and dependencies in transaction
 	tx := a.DB.Begin()
 
 	// 1. Clear any active or past sessions pointing to this flow to prevent foreign key errors
 	_ = tx.Model(&models.ChatbotSession{}).Where("current_flow_id = ?", id).Update("current_flow_id", nil).Error
+	_ = tx.Exec("UPDATE chatbot_sessions SET current_flow_id = NULL WHERE current_flow_id = ?", id).Error
 
 	// 2. Remove legacy flow steps if present (use raw SQL and unscoped for complete safety)
 	_ = tx.Exec("DELETE FROM chatbot_flow_steps WHERE flow_id = ?", id).Error
 	_ = tx.Unscoped().Where("flow_id = ?", id).Delete(&models.ChatbotFlowStep{}).Error
 
 	// 3. Delete flow (both soft delete and hard delete compatibility)
-	result := tx.Where("id = ? AND organization_id = ?", id, orgID).Delete(&models.ChatbotFlow{})
-	if result.Error != nil {
-		tx.Rollback()
-		a.Log.Error("Failed to delete flow", "error", result.Error)
-		return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to delete flow", nil, "")
-	}
-	if result.RowsAffected == 0 {
-		tx.Rollback()
-		return r.SendErrorEnvelope(fasthttp.StatusNotFound, "Flow not found", nil, "")
-	}
+	_ = tx.Exec("DELETE FROM chatbot_flows WHERE id = ?", id).Error
+	_ = tx.Unscoped().Where("id = ?", id).Delete(&models.ChatbotFlow{})
 
 	if err := tx.Commit().Error; err != nil {
 		a.Log.Error("Failed to commit flow deletion", "error", err)
@@ -1108,7 +1112,7 @@ func (a *App) DeleteChatbotFlow(r *fastglue.Request) error {
 	a.InvalidateChatbotFlowsCache(orgID)
 
 	a.logAudit(orgID, userID,
-		"chatbot_flow", id, models.AuditActionDeleted, &flowForAudit, nil)
+		"chatbot_flow", id, models.AuditActionDeleted, &flow, nil)
 
 	return r.SendEnvelope(map[string]any{
 		"message": "Flow deleted successfully",
