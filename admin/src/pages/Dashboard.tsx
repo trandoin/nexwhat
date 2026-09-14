@@ -14,48 +14,86 @@ import {
   ArrowRight
 } from 'lucide-react'
 import { StatCard } from '../components/StatCard'
-import { apiClient, INITIAL_ORGS, DEFAULT_PLANS } from '../services/api'
+import { adminApi, INITIAL_ORGS, DEFAULT_PLANS } from '../services/api'
+import { Organization } from '../types'
 
 export const Dashboard: React.FC = () => {
   const [metrics, setMetrics] = useState({
-    totalOrgs: INITIAL_ORGS.length,
-    activeOrgs: INITIAL_ORGS.filter(o => o.status === 'active').length,
-    totalContacts: INITIAL_ORGS.reduce((acc, curr) => acc + (curr.contacts_count || 0), 0),
-    totalMessages: INITIAL_ORGS.reduce((acc, curr) => acc + (curr.messages_sent || 0), 0),
-    estimatedMRR: 2795,
-    organizations: INITIAL_ORGS
+    totalOrgs: 0,
+    activeOrgs: 0,
+    totalContacts: 0,
+    totalMessages: 0,
+    estimatedMRR: 0,
+    starterCount: 0,
+    growthCount: 0,
+    proCount: 0,
+    organizations: [] as Organization[]
   })
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    apiClient.get('/admin/overview')
-      .then(res => {
-        const data = res.data?.data || res.data
-        if (data && data.organizations) {
+  const loadData = () => {
+    setIsLoading(true)
+    adminApi.getOverview()
+      .then((data: any) => {
+        if (data) {
           setMetrics({
-            totalOrgs: data.total_orgs,
-            activeOrgs: data.active_orgs,
-            totalContacts: data.total_contacts,
-            totalMessages: data.total_messages,
-            estimatedMRR: data.estimated_mrr,
-            organizations: data.organizations
+            totalOrgs: data.total_orgs ?? 0,
+            activeOrgs: data.active_orgs ?? 0,
+            totalContacts: data.total_contacts ?? 0,
+            totalMessages: data.total_messages ?? 0,
+            estimatedMRR: data.estimated_mrr ?? 0,
+            starterCount: data.starter_count ?? 0,
+            growthCount: data.growth_count ?? 0,
+            proCount: data.pro_count ?? 0,
+            organizations: (data.organizations || []).map((org: any) => ({
+              id: org.id,
+              name: org.name,
+              slug: org.slug,
+              status: org.status || 'active',
+              plan_tier: org.plan_tier || 'growth',
+              created_at: org.created_at,
+              members_count: org.members_count || 0,
+              contacts_count: org.contacts_count || 0,
+              messages_sent: org.messages_sent || 0,
+              phone_numbers_count: org.phone_numbers_count || 0,
+              waba_id: org.waba_id,
+              phone_number_id: org.phone_number_id
+            }))
           })
         }
       })
-      .catch(err => console.warn('Admin overview live fetch fallback:', err))
+      .catch(err => {
+        console.warn('Admin overview live fetch fallback:', err)
+        setMetrics({
+          totalOrgs: INITIAL_ORGS.length,
+          activeOrgs: INITIAL_ORGS.filter(o => o.status === 'active').length,
+          totalContacts: INITIAL_ORGS.reduce((acc, curr) => acc + (curr.contacts_count || 0), 0),
+          totalMessages: INITIAL_ORGS.reduce((acc, curr) => acc + (curr.messages_sent || 0), 0),
+          estimatedMRR: 2795,
+          starterCount: 2,
+          growthCount: 2,
+          proCount: 1,
+          organizations: INITIAL_ORGS
+        })
+      })
       .finally(() => setIsLoading(false))
+  }
+
+  useEffect(() => {
+    loadData()
   }, [])
 
-  const totalOrgs = metrics.totalOrgs
+  const totalOrgs = metrics.totalOrgs || 1
+  const displayTotalOrgs = metrics.totalOrgs
   const activeOrgs = metrics.activeOrgs
   const mrr = metrics.estimatedMRR
   const totalContacts = metrics.totalContacts
   const totalMessages = metrics.totalMessages
 
-  const orgsList = metrics.organizations || []
-  const starterCount = orgsList.filter(o => (o.plan_tier as string) === 'starter').length
-  const growthCount = orgsList.filter(o => (o.plan_tier as string) === 'growth' || !o.plan_tier).length
-  const proCount = orgsList.filter(o => (o.plan_tier as string) === 'pro' || (o.plan_tier as string) === 'enterprise').length
+  const orgsList = metrics.organizations
+  const starterCount = metrics.starterCount || orgsList.filter(o => (o.plan_tier as string) === 'starter').length
+  const growthCount = metrics.growthCount || orgsList.filter(o => (o.plan_tier as string) === 'growth' || !o.plan_tier).length
+  const proCount = metrics.proCount || orgsList.filter(o => (o.plan_tier as string) === 'pro' || (o.plan_tier as string) === 'enterprise').length
 
   return (
     <div className="space-y-8">
@@ -107,10 +145,10 @@ export const Dashboard: React.FC = () => {
         />
         <StatCard
           title="Registered Customer Orgs"
-          value={totalOrgs}
+          value={displayTotalOrgs}
           change={`${activeOrgs} Active`}
           trend="up"
-          subtitle="1 on 14-day free trial"
+          subtitle={`${metrics.organizations.filter(o => o.status === 'trial').length} on trial`}
           icon={Building2}
           color="blue"
         />
@@ -259,7 +297,14 @@ export const Dashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.04]">
-              {INITIAL_ORGS.map((org) => (
+              {orgsList.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-400">
+                    No customer organizations found in database.
+                  </td>
+                </tr>
+              ) : (
+                orgsList.slice(0, 5).map((org) => (
                 <tr key={org.id} className="hover:bg-white/[0.02] transition-colors">
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
@@ -306,7 +351,7 @@ export const Dashboard: React.FC = () => {
                     </Link>
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>

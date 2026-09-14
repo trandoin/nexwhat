@@ -169,3 +169,47 @@ export const INITIAL_ORGS: Organization[] = [
     phone_number_id: 'phone_339182049102'
   }
 ]
+
+export interface OverviewData {
+  total_orgs: number
+  active_orgs: number
+  total_contacts: number
+  total_messages: number
+  estimated_mrr: number
+  starter_count: number
+  growth_count: number
+  pro_count: number
+  pending_setup_requests: number
+  organizations: Organization[]
+}
+
+export const adminApi = {
+  getOverview: async (): Promise<OverviewData> => {
+    const res = await apiClient.get('/admin/overview')
+    return res.data?.data || res.data
+  },
+  listOrganizations: async (params?: { search?: string; status?: string; plan?: string }) => {
+    const res = await apiClient.get('/admin/organizations', { params })
+    return res.data?.data || res.data
+  },
+  createOrganization: async (data: { name: string; slug?: string; plan_tier?: string; status?: string }) => {
+    const res = await apiClient.post('/admin/organizations', data)
+    return res.data?.data || res.data
+  },
+  updateOrganization: async (id: string, data: { name?: string; plan_tier?: string; status?: string }) => {
+    const res = await apiClient.patch(`/admin/organizations/${id}`, data)
+    return res.data?.data || res.data
+  },
+  linkWhatsApp: async (id: string, data: { phone_id: string; business_id: string; access_token: string; name?: string; app_id?: string; app_secret?: string; webhook_verify_token?: string }) => {
+    const res = await apiClient.post(`/admin/organizations/${id}/link-whatsapp`, data)
+    return res.data?.data || res.data
+  },
+  listSetupRequests: async () => {
+    const res = await apiClient.get('/admin/setup-requests')
+    return res.data?.data || res.data
+  },
+  updateSetupRequest: async (id: string, data: { status: string; notes?: string }) => {
+    const res = await apiClient.patch(`/admin/setup-requests/${id}`, data)
+    return res.data?.data || res.data
+  }
+}
