@@ -9,6 +9,8 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/shridarpatil/whatomate/internal/crypto"
@@ -419,6 +421,140 @@ func (a *App) TestAccountConnection(r *fastglue.Request) error {
 	return r.SendEnvelope(response)
 }
 
+// SendTestMessageRequest contains parameters for sending an immediate verification test message
+type SendTestMessageRequest struct {
+	RecipientPhone string `json:"recipient_phone"`
+	MessageType    string `json:"message_type"` // "template" (default) or "text"
+	CustomText     string `json:"custom_text"`   // optional custom text
+}
+
+// SendTestWhatsAppMessage sends an immediate test WhatsApp message to verify integration
+func (a *App) SendTestWhatsAppMessage(r *fastglue.Request) error {
+	orgID, userID, err := a.getOrgAndUserID(r)
+	if err != nil {
+		return r.SendErrorEnvelope(fasthttp.StatusUnauthorized, "Unauthorized", nil, "")
+	}
+
+	id, err := parsePathUUID(r, "id", "account")
+	if err != nil {
+		return nil
+	}
+
+	account, err := a.resolveWhatsAppAccountByID(r, id, orgID)
+	if err != nil {
+		return nil
+	}
+
+	var req SendTestMessageRequest
+	if err := a.decodeRequest(r, &req); err != nil {
+		return nil
+	}
+
+	phone := strings.TrimSpace(req.RecipientPhone)
+	phone = strings.TrimPrefix(phone, "+")
+	phone = strings.ReplaceAll(phone, " ", "")
+	phone = strings.ReplaceAll(phone, "-", "")
+
+	if phone == "" {
+		return r.SendErrorEnvelope(fasthttp.StatusBadRequest, "Recipient phone number is required", nil, "")
+	}
+
+	// 1. Find or create Contact in the organization
+	var contact models.Contact
+	if err := a.DB.Where("phone_number = ? AND organization_id = ?", phone, orgID).First(&contact).Error; err != nil {
+		contact = models.Contact{
+			BaseModel:       models.BaseModel{ID: uuid.New()},
+			OrganizationID:  orgID,
+			PhoneNumber:     phone,
+			ProfileName:     "Verification Test Phone",
+			WhatsAppAccount: account.Name,
+		}
+		if err := a.DB.Create(&contact).Error; err != nil {
+			a.Log.Error("Failed to auto-create contact for test message", "error", err)
+			return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to create contact record", nil, "")
+		}
+	}
+
+	waAccount := a.toWhatsAppAccount(account)
+	rcpt := whatsapp.Recipient{Phone: phone}
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
+	defer cancel()
+
+	var wamid string
+	var sendErr error
+	var msgType models.MessageType
+	var content string
+
+	if req.MessageType == "text" {
+		msgType = models.MessageTypeText
+		content = req.CustomText
+		if content == "" {
+			content = fmt.Sprintf("🎉 Congratulations! Your NexWhat WhatsApp Business API connection with %s is verified and active! All incoming and outgoing messages are now connected.", account.Name)
+		}
+		wamid, sendErr = a.WhatsApp.SendTextMessage(ctx, waAccount, rcpt, content)
+	} else {
+		msgType = models.MessageTypeTemplate
+		content = "Welcome and congratulations! This is an official WhatsApp Cloud API verification message sent directly to your phone."
+		// Send Meta's universal pre-approved "hello_world" template (en_US)
+		wamid, sendErr = a.WhatsApp.SendTemplateMessage(ctx, waAccount, rcpt, "hello_world", "en_US", nil)
+		// If hello_world fails (e.g. customized WABA where hello_world was deleted or locale error), fall back to direct text
+		if sendErr != nil {
+			a.Log.Warn("hello_world template send returned error, trying direct text fallback", "error", sendErr)
+			textFallback := fmt.Sprintf("🎉 Congratulations! Your NexWhat WhatsApp Business API connection with %s is verified and active!", account.Name)
+			textMsgID, textErr := a.WhatsApp.SendTextMessage(ctx, waAccount, rcpt, textFallback)
+			if textErr == nil {
+				wamid = textMsgID
+				sendErr = nil
+				msgType = models.MessageTypeText
+				content = textFallback
+			}
+		}
+	}
+
+	if sendErr != nil {
+		a.Log.Error("Failed to send test WhatsApp message", "error", sendErr, "account", account.Name, "phone", phone)
+		return r.SendEnvelope(map[string]any{
+			"success": false,
+			"error":   fmt.Sprintf("Meta WhatsApp API error: %s", sendErr.Error()),
+		})
+	}
+
+	// Create and persist the message record in DB
+	msg := &models.Message{
+		BaseModel:       models.BaseModel{ID: uuid.New()},
+		OrganizationID:  orgID,
+		WhatsAppAccount: account.Name,
+		ContactID:       contact.ID,
+		Direction:       models.DirectionOutgoing,
+		MessageType:     msgType,
+		Content:         content,
+		Status:          models.MessageStatusSent,
+		SentByUserID:    &userID,
+	}
+	if wamid != "" {
+		msg.WhatsAppMessageID = wamid
+	}
+	if msgType == models.MessageTypeTemplate {
+		msg.TemplateName = "hello_world"
+	}
+	_ = a.DB.Create(msg).Error
+
+	// Update contact preview
+	a.updateContactLastMessage(&contact, content)
+
+	// Broadcast via WebSocket so ChatView live inbox receives it instantly
+	a.broadcastNewMessage(orgID, msg, &contact)
+
+	return r.SendEnvelope(map[string]any{
+		"success":      true,
+		"message_id":   wamid,
+		"contact_id":   contact.ID.String(),
+		"phone_number": phone,
+		"content":      content,
+		"status":       "sent",
+	})
+}
+
 // fetchMetaJSON performs a Bearer-authenticated GET against the Meta Graph API
 // and decodes the JSON body into a generic map. The decoded body is returned
 // regardless of HTTP status, so callers can surface error envelopes from Meta.
@@ -702,27 +838,133 @@ func (a *App) discoverWABAAndPhone(ctx context.Context, orgID uuid.UUID, accessT
 		return "", "", "", err
 	}
 
-	var discoveredWABAID string
+	// Start with any caller-provided wabaID
+	discoveredWABAID := wabaID
 
-	if appID != "" && appSecret != "" {
+	// If phoneID is known but WABA is missing, query phone node for its parent WABA
+	if phoneID != "" && discoveredWABAID == "" {
+		a.Log.Info("Attempting to resolve WABA ID directly from phone_id", "phone_id", phoneID)
+		phoneURL := fmt.Sprintf("%s/%s/%s?fields=whatsapp_business_account", a.Config.WhatsApp.BaseURL, a.Config.WhatsApp.APIVersion, phoneID)
+		result, status, err := a.fetchMetaJSON(phoneURL, accessToken)
+		if err == nil && status == http.StatusOK {
+			if wabaObj, ok := result["whatsapp_business_account"].(map[string]any); ok {
+				if id, ok := wabaObj["id"].(string); ok && id != "" {
+					discoveredWABAID = id
+					a.Log.Info("Discovered WABA ID directly from phone_id", "waba_id", discoveredWABAID, "phone_id", phoneID)
+				}
+			}
+		}
+	}
+
+	// Strategy 1: Inspect token debug info
+	if discoveredWABAID == "" && appID != "" && appSecret != "" {
 		appAccessToken := fmt.Sprintf("%s|%s", appID, appSecret)
 		debugInfo, err := a.WhatsApp.GetTokenDebugInfo(ctx, accessToken, appAccessToken)
 		if err == nil && debugInfo != nil {
+			a.Log.Info("Inspecting token debug info",
+				"scopes", debugInfo.Scopes,
+				"granular_scopes_count", len(debugInfo.GranularScopes),
+				"is_valid", debugInfo.IsValid)
 			for _, scope := range debugInfo.GranularScopes {
-				if scope.Scope == "whatsapp_business_management" {
+				a.Log.Info("Found granular scope", "scope", scope.Scope, "target_ids", scope.TargetIds)
+				if scope.Scope == "whatsapp_business_management" || scope.Scope == "whatsapp_business_messaging" || strings.Contains(scope.Scope, "whatsapp") {
 					if len(scope.TargetIds) > 0 {
 						discoveredWABAID = scope.TargetIds[0]
 						break
 					}
 				}
 			}
+			if discoveredWABAID == "" {
+				for _, scope := range debugInfo.GranularScopes {
+					if len(scope.TargetIds) > 0 {
+						discoveredWABAID = scope.TargetIds[0]
+						a.Log.Info("Using fallback target_id from granular scope", "scope", scope.Scope, "waba_id", discoveredWABAID)
+						break
+					}
+				}
+			}
 		} else if err != nil {
-			a.Log.Warn("Token debug inspection returned error, falling back to /me/accounts", "error", err)
+			a.Log.Warn("Token debug inspection returned error, falling back to Graph API queries", "error", err)
 		}
 	}
 
+	// Strategy 2: Query /me/whatsapp_business_accounts directly
 	if discoveredWABAID == "" {
-		a.Log.Info("Attempting WABA discovery via /me/accounts strategy")
+		a.Log.Info("Attempting WABA discovery via /me/whatsapp_business_accounts")
+		wabaURL := fmt.Sprintf("%s/%s/me/whatsapp_business_accounts?fields=id,name,phone_numbers{id,display_phone_number,verified_name}", a.Config.WhatsApp.BaseURL, a.Config.WhatsApp.APIVersion)
+		result, status, err := a.fetchMetaJSON(wabaURL, accessToken)
+		if err == nil && status == http.StatusOK {
+			if data, ok := result["data"].([]any); ok && len(data) > 0 {
+				if firstWABA, ok := data[0].(map[string]any); ok {
+					if id, ok := firstWABA["id"].(string); ok && id != "" {
+						discoveredWABAID = id
+						if phoneID == "" {
+							if phonesObj, ok := firstWABA["phone_numbers"].(map[string]any); ok {
+								if phonesList, ok := phonesObj["data"].([]any); ok && len(phonesList) > 0 {
+									if firstPhone, ok := phonesList[0].(map[string]any); ok {
+										phoneID, _ = firstPhone["id"].(string)
+										vName, _ := firstPhone["verified_name"].(string)
+										dPhone, _ := firstPhone["display_phone_number"].(string)
+										if name == "" && (vName != "" || dPhone != "") {
+											name = fmt.Sprintf("%s (%s)", vName, dPhone)
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Strategy 3: Query /me/businesses for client and owned WABA accounts
+	if discoveredWABAID == "" {
+		a.Log.Info("Attempting WABA discovery via /me/businesses")
+		bizURL := fmt.Sprintf("%s/%s/me/businesses?fields=client_whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number,verified_name}},owned_whatsapp_business_accounts{id,name,phone_numbers{id,display_phone_number,verified_name}}", a.Config.WhatsApp.BaseURL, a.Config.WhatsApp.APIVersion)
+		result, status, err := a.fetchMetaJSON(bizURL, accessToken)
+		if err == nil && status == http.StatusOK {
+			if data, ok := result["data"].([]any); ok {
+				for _, b := range data {
+					if bMap, ok := b.(map[string]any); ok {
+						for _, field := range []string{"client_whatsapp_business_accounts", "owned_whatsapp_business_accounts"} {
+							if wabasObj, ok := bMap[field].(map[string]any); ok {
+								if wabasList, ok := wabasObj["data"].([]any); ok && len(wabasList) > 0 {
+									if firstWABA, ok := wabasList[0].(map[string]any); ok {
+										if id, ok := firstWABA["id"].(string); ok && id != "" {
+											discoveredWABAID = id
+											if phoneID == "" {
+												if phonesObj, ok := firstWABA["phone_numbers"].(map[string]any); ok {
+													if phonesList, ok := phonesObj["data"].([]any); ok && len(phonesList) > 0 {
+														if firstPhone, ok := phonesList[0].(map[string]any); ok {
+															phoneID, _ = firstPhone["id"].(string)
+															vName, _ := firstPhone["verified_name"].(string)
+															dPhone, _ := firstPhone["display_phone_number"].(string)
+															if name == "" && (vName != "" || dPhone != "") {
+																name = fmt.Sprintf("%s (%s)", vName, dPhone)
+															}
+														}
+													}
+												}
+											}
+											break
+										}
+									}
+								}
+							}
+						}
+						if discoveredWABAID != "" {
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Strategy 4: Legacy /me/accounts fallback
+	if discoveredWABAID == "" {
+		a.Log.Info("Attempting WABA discovery via legacy /me/accounts strategy")
 		sharedInfo, err := a.WhatsApp.GetSharedWABA(ctx, accessToken)
 		if err == nil && len(sharedInfo.Data) > 0 {
 			discoveredWABAID = sharedInfo.Data[0].ID

@@ -1,0 +1,34 @@
+# Config file for Air (Go hot-reloading)
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  # Build command targeting the cmd/whatomate entrypoint
+  cmd = "go build -o ./tmp/main.exe ./cmd/whatomate"
+  # Binary to execute
+  bin = ".\\tmp\\main.exe"
+  # Arguments passed to the binary
+  args_bin = ["server", "-config", "config.toml"]
+  # Watch only Go code and TOML config files
+  include_ext = ["go", "toml"]
+  # Ignore frontend, node_modules, uploads, and git to keep Air fast
+  exclude_dir = ["assets", "tmp", "vendor", "test", "frontend", "admin", "docs", "uploads", ".git"]
+  # Ignore test files from triggering recompilation
+  exclude_regex = ["_test\\.go$"]
+  # Delay in milliseconds before triggering a rebuild (debounce)
+  delay = 1000
+  # Stop the running binary before rebuilding
+  stop_on_error = true
+  # Send interrupt signal on stop
+  send_interrupt = true
+  kill_delay = 500
+
+[color]
+  main = "magenta"
+  watcher = "cyan"
+  build = "yellow"
+  runner = "green"
+
+[log]
+  time = true
+  main_only = false

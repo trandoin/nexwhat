@@ -1,24 +1,19 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import {
-  MessageSquare,
-  ShieldCheck,
-  CheckCircle2,
-  Phone,
   Sparkles,
-  Zap,
   ArrowRight,
   Loader2,
   Headphones,
-  Check,
+  CheckCircle2,
+  Smartphone,
+  ShieldCheck,
   HelpCircle,
   ExternalLink,
-  Smartphone,
-  Copy,
-  AlertCircle,
-  X
+  ChevronDown,
+  ChevronUp
 } from 'lucide-vue-next'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { api } from '@/services/api'
 import { toast } from 'vue-sonner'
 import { getErrorMessage } from '@/lib/api-utils'
@@ -32,35 +27,26 @@ const emit = defineEmits<{
   (e: 'connected'): void
 }>()
 
-// Tabs: 'embedded' | 'guided' | 'concierge'
-const activeTab = ref<'embedded' | 'guided' | 'concierge'>('embedded')
-
-// Facebook Embedded Signup State
+// State
 const isFBSDKLoaded = ref(false)
 const isConnectingFB = ref(false)
 const whatsappConfig = ref<{ app_id: string; config_id: string; api_version: string } | null>(null)
 const fbConfigError = ref(false)
+const showAdvanced = ref(false)
+const showConcierge = ref(false)
 
-// Guided Step State
-const guidedStep = ref<1 | 2 | 3>(1)
-const phoneNumber = ref('')
-const businessName = ref('')
-const migrationType = ref<'new' | 'existing'>('new')
-const verificationCode = ref('')
-const isSubmittingGuided = ref(false)
+// Advanced manual inputs (hidden by default)
+const manualBusinessName = ref('')
+const manualWabaId = ref('')
+const manualPhoneId = ref('')
+const manualAccessToken = ref('')
+const isSavingManual = ref(false)
 
-// Concierge State
-const conciergeBusiness = ref('')
+// Concierge inputs
 const conciergePhone = ref('')
-const conciergeChannel = ref<'whatsapp' | 'phone' | 'meet'>('whatsapp')
-const conciergeSlot = ref('instant')
-const conciergeNotes = ref('')
-const isConciergeBooked = ref(false)
+const conciergeBusiness = ref('')
 const isSubmittingConcierge = ref(false)
-
-// Token Auto-Discovery State
-const metaToken = ref('')
-const isAutoDiscovering = ref(false)
+const isConciergeBooked = ref(false)
 
 onMounted(async () => {
   await fetchWhatsAppConfig()
@@ -110,15 +96,52 @@ function loadFacebookSDK() {
 function launch1ClickMetaConnect() {
   if (!isFBSDKLoaded.value || !(window as any).FB) {
     if (fbConfigError.value) {
-      toast.info('Using Auto-Discovery & Guided Setup for instant number linkage.')
-      activeTab.value = 'guided'
+      toast.info('Please contact support or configure WhatsApp settings.')
       return
     }
-    toast.error('Facebook SDK is still initializing. Please wait a few seconds...')
+    toast.error('Connecting to Meta. Please wait a moment and try again...')
     return
   }
 
   isConnectingFB.value = true
+
+  let sessionPhoneNumberId = ''
+  let sessionWabaId = ''
+  let authCode = ''
+  let hasExchanged = false
+  let fallbackTimer: any = null
+
+  const doExchange = () => {
+    if (hasExchanged || !authCode) return
+    hasExchanged = true
+    if (fallbackTimer) clearTimeout(fallbackTimer)
+    window.removeEventListener('message', sessionInfoListener)
+    exchangeCodeForToken(authCode, sessionPhoneNumberId, sessionWabaId)
+  }
+
+  const sessionInfoListener = (event: MessageEvent) => {
+    if (!event.origin || (!event.origin.includes('facebook.com') && !event.origin.includes('meta.com'))) {
+      return
+    }
+    try {
+      const raw = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+      if (!raw) return
+
+      const payload = raw.data?.sessionInfo || raw.sessionInfo || raw.data || raw
+      const pId = payload?.phone_number_id || payload?.phoneNumberId || raw.phone_number_id || raw.data?.phone_number_id
+      const wId = payload?.waba_id || payload?.wabaId || payload?.account_id || raw.waba_id || raw.data?.waba_id
+      if (pId) sessionPhoneNumberId = String(pId)
+      if (wId) sessionWabaId = String(wId)
+
+      if (authCode && (sessionWabaId || sessionPhoneNumberId)) {
+        doExchange()
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  window.addEventListener('message', sessionInfoListener)
 
   const loginOptions: any = {
     config_id: whatsappConfig.value!.config_id,
@@ -126,31 +149,33 @@ function launch1ClickMetaConnect() {
     override_default_response_type: true,
     extras: {
       setup: {},
-      featureType: 'whatsapp_business_app_onboarding',
-      sessionInfoVersion: '3',
-      version: 'v3'
+      sessionInfoVersion: '2'
     }
   }
 
   ;(window as any).FB.login(
     (response: any) => {
-      if (response.authResponse) {
-        const code = response.authResponse.code
-        const phoneNumberId = response.authResponse.phone_number_id
-        const wabaId = response.authResponse.waba_id
+      if (response.authResponse && response.authResponse.code) {
+        authCode = response.authResponse.code
+        if (response.authResponse.phone_number_id) sessionPhoneNumberId = String(response.authResponse.phone_number_id)
+        if (response.authResponse.waba_id) sessionWabaId = String(response.authResponse.waba_id)
 
-        if (!code) {
-          toast.error('Incomplete data received from Meta: missing authorization code.')
-          isConnectingFB.value = false
-          return
+        if (sessionPhoneNumberId || sessionWabaId) {
+          doExchange()
+        } else {
+          fallbackTimer = setTimeout(() => {
+            doExchange()
+          }, 2000)
         }
-
-        exchangeCodeForToken(code, phoneNumberId, wabaId)
       } else if (response.error) {
+        if (fallbackTimer) clearTimeout(fallbackTimer)
+        window.removeEventListener('message', sessionInfoListener)
         toast.error(`Meta error: ${response.error.message || 'Authorization failed'}`)
         isConnectingFB.value = false
       } else {
-        toast.info('Meta signup was closed or cancelled.')
+        if (fallbackTimer) clearTimeout(fallbackTimer)
+        window.removeEventListener('message', sessionInfoListener)
+        toast.info('Meta connection was closed or cancelled.')
         isConnectingFB.value = false
       }
     },
@@ -160,89 +185,50 @@ function launch1ClickMetaConnect() {
 
 async function exchangeCodeForToken(code: string, phoneNumberId: string, wabaId: string) {
   try {
-    const response = await api.post('/accounts/exchange-token', {
+    await api.post('/accounts/exchange-token', {
       code,
       phone_id: phoneNumberId,
       waba_id: wabaId
     })
 
-    toast.success('WhatsApp Business number linked successfully!')
+    toast.success('WhatsApp Business line connected successfully!')
     emit('connected')
     emit('update:open', false)
   } catch (error: any) {
-    toast.error(getErrorMessage(error, 'Failed to link WhatsApp account'))
+    toast.error(getErrorMessage(error, 'Failed to link WhatsApp account. Please try again.'))
   } finally {
     isConnectingFB.value = false
   }
 }
 
-// 1-Click Auto-Discovery with Meta Token
-async function handleAutoDiscoverToken() {
-  if (!metaToken.value.trim()) {
-    toast.error('Please paste your Meta Access Token to auto-detect your number.')
+async function handleSaveManualCredentials() {
+  if (!manualWabaId.value.trim() || !manualPhoneId.value.trim() || !manualAccessToken.value.trim()) {
+    toast.error('Please fill in all required credentials.')
     return
   }
-  isAutoDiscovering.value = true
+
+  isSavingManual.value = true
   try {
-    await api.post('/accounts/exchange-token', {
-      access_token: metaToken.value.trim(),
-      name: businessName.value.trim() || undefined
+    await api.post('/accounts', {
+      name: manualBusinessName.value.trim() || 'WhatsApp Business Line',
+      phone_id: manualPhoneId.value.trim(),
+      business_id: manualWabaId.value.trim(),
+      access_token: manualAccessToken.value.trim(),
+      api_version: whatsappConfig.value?.api_version || 'v21.0',
+      is_default_incoming: true,
+      is_default_outgoing: true
     })
-    toast.success('WhatsApp Business number auto-discovered and linked successfully!')
+
+    toast.success('WhatsApp Account linked successfully!')
     emit('connected')
     emit('update:open', false)
   } catch (error: any) {
-    toast.error(getErrorMessage(error, 'Auto-discovery failed. Please verify your token has whatsapp_business_management permission.'))
+    toast.error(getErrorMessage(error, 'Failed to link WhatsApp account.'))
   } finally {
-    isAutoDiscovering.value = false
+    isSavingManual.value = false
   }
 }
 
-// Guided Step Submission
-async function handleGuidedNext() {
-  if (guidedStep.value === 1) {
-    if (!phoneNumber.value || !businessName.value) {
-      toast.error('Please enter both your business name and phone number.')
-      return
-    }
-    isSubmittingGuided.value = true
-    setTimeout(() => {
-      isSubmittingGuided.value = false
-      guidedStep.value = 2
-      toast.success(`Verification code dispatched to ${phoneNumber.value} via WhatsApp / SMS`)
-    }, 900)
-  } else if (guidedStep.value === 2) {
-    if (!verificationCode.value || verificationCode.value.length < 6) {
-      toast.error('Please enter the 6-digit verification code.')
-      return
-    }
-    isSubmittingGuided.value = true
-    try {
-      // Auto-provision or register account
-      const cleanPhone = phoneNumber.value.replace(/[^0-9]/g, '')
-      await api.post('/accounts', {
-        name: businessName.value,
-        phone_id: `phone_${cleanPhone}`,
-        business_id: `waba_${cleanPhone}`,
-        access_token: `token_verified_${cleanPhone}`,
-        api_version: 'v21.0',
-        is_default_incoming: true,
-        is_default_outgoing: true
-      })
-      guidedStep.value = 3
-      toast.success('WhatsApp number linked and registered successfully!')
-      emit('connected')
-    } catch (err: any) {
-      guidedStep.value = 3
-      toast.success('WhatsApp number verified and connected!')
-      emit('connected')
-    } finally {
-      isSubmittingGuided.value = false
-    }
-  }
-}
-
-// Concierge Support Booking
 async function handleConciergeSubmit() {
   if (!conciergePhone.value.trim()) {
     toast.error('Please enter your WhatsApp contact number.')
@@ -254,437 +240,215 @@ async function handleConciergeSubmit() {
     await api.post('/onboarding/concierge-request', {
       business_name: conciergeBusiness.value || 'My Business',
       phone_number: conciergePhone.value,
-      contact_channel: conciergeChannel.value,
-      preferred_slot: conciergeSlot.value,
-      notes: conciergeNotes.value
+      contact_channel: 'whatsapp',
+      preferred_slot: 'instant'
     })
   } catch (e) {
-    console.log('Recorded concierge request:', e)
+    // ignore
   } finally {
     isSubmittingConcierge.value = false
     isConciergeBooked.value = true
   }
 
-  const channelLabel =
-    conciergeChannel.value === 'meet'
-      ? '10-Min Google Meet Screen-Share'
-      : conciergeChannel.value === 'phone'
-      ? 'Direct Phone Call'
-      : 'WhatsApp Priority Chat'
-
   const msg = encodeURIComponent(
-    `Hi NexWhat Setup Team! Please help me link my WhatsApp number (+${conciergePhone.value}) for business "${conciergeBusiness.value || 'My Business'}" via ${channelLabel}.`
+    `Hi NexWhat team! Please help me connect my WhatsApp number (+${conciergePhone.value}) for "${conciergeBusiness.value || 'My Business'}".`
   )
   window.open(`https://wa.me/919999999999?text=${msg}`, '_blank')
-  toast.success('Concierge setup request logged! Opening WhatsApp with specialist.')
 }
 </script>
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent class="sm:max-w-3xl bg-[#0a0d14] border border-white/[0.08] text-white p-0 shadow-2xl rounded-3xl overflow-hidden">
-      <!-- Header Banner inspired by AiSensy Reference -->
-      <div class="relative p-6 sm:p-8 bg-gradient-to-r from-emerald-950/60 via-[#0d131f] to-teal-950/40 border-b border-white/[0.08]">
-        <div class="absolute -right-8 -top-8 w-48 h-48 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
-
-        <div class="relative z-10 flex items-start justify-between">
-          <div>
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold mb-3">
-              <Sparkles class="h-3.5 w-3.5" />
-              <span>Zero Technical Hassle • Done in 10 Minutes</span>
-            </div>
-            <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Start WhatsApp Marketing in 10 Minutes
-            </h2>
-            <p class="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
-              NexWhat is powered by the official WhatsApp Business Cloud API. Link your number effortlessly with zero message markups.
-            </p>
+    <DialogContent class="sm:max-w-lg bg-[#0e131d] border border-white/10 text-white p-0 shadow-2xl rounded-2xl overflow-hidden">
+      <!-- Concierge Mode -->
+      <div v-if="showConcierge" class="p-6 space-y-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2 text-emerald-400 text-xs font-bold">
+            <Headphones class="h-4 w-4" />
+            <span>Free Setup Assistance</span>
           </div>
-        </div>
-
-        <!-- 3 Feature Badges matching AiSensy reference -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6 pt-5 border-t border-white/[0.08]">
-          <div class="flex items-center gap-2.5 text-xs text-slate-200">
-            <div class="h-6 w-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-              <CheckCircle2 class="h-4 w-4" />
-            </div>
-            <span><strong>Official Green Tick</strong> Verification Assistance</span>
-          </div>
-
-          <div class="flex items-center gap-2.5 text-xs text-slate-200">
-            <div class="h-6 w-6 rounded-full bg-teal-500/20 text-teal-400 flex items-center justify-center shrink-0">
-              <Headphones class="h-4 w-4" />
-            </div>
-            <span><strong>Dedicated Live Support</strong> via WhatsApp Call</span>
-          </div>
-
-          <div class="flex items-center gap-2.5 text-xs text-slate-200">
-            <div class="h-6 w-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
-              <Zap class="h-4 w-4" />
-            </div>
-            <span><strong>0% Message Markup</strong> Direct Meta Billing</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Tab Navigation -->
-      <div class="px-6 sm:px-8 pt-5 bg-[#090b11] border-b border-white/[0.06] flex items-center gap-2">
-        <button
-          type="button"
-          @click="activeTab = 'embedded'"
-          :class="[
-            'px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all border-b-2',
-            activeTab === 'embedded'
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500'
-              : 'text-slate-400 hover:text-white border-transparent'
-          ]"
-        >
-          ⚡ 1-Click Meta Connect (Recommended)
-        </button>
-
-        <button
-          type="button"
-          @click="activeTab = 'guided'"
-          :class="[
-            'px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all border-b-2',
-            activeTab === 'guided'
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500'
-              : 'text-slate-400 hover:text-white border-transparent'
-          ]"
-        >
-          🚀 Instant Auto-Discovery (Token / Guided)
-        </button>
-
-        <button
-          type="button"
-          @click="activeTab = 'concierge'"
-          :class="[
-            'px-4 py-2.5 text-xs font-bold rounded-t-xl transition-all border-b-2',
-            activeTab === 'concierge'
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500'
-              : 'text-slate-400 hover:text-white border-transparent'
-          ]"
-        >
-          👨‍💻 Free Setup Concierge (We Do It For You)
-        </button>
-      </div>
-
-      <!-- Tab 1: 1-Click Meta Embedded Signup -->
-      <div v-if="activeTab === 'embedded'" class="p-6 sm:p-8 space-y-6">
-        <div class="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div class="space-y-2 text-left">
-            <h3 class="text-base font-bold text-white flex items-center gap-2">
-              <Smartphone class="h-5 w-5 text-emerald-400" />
-              Automated Meta Business Connection
-            </h3>
-            <p class="text-xs text-slate-300 max-w-md leading-relaxed">
-              Login with Facebook to select your WhatsApp Business Account. Meta will verify your phone number via OTP directly in the secure popup. No developer console required!
-            </p>
-          </div>
-
           <button
             type="button"
-            :disabled="isConnectingFB"
-            @click="launch1ClickMetaConnect"
-            class="px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-xl shadow-emerald-500/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 shrink-0 disabled:opacity-60"
+            @click="showConcierge = false"
+            class="text-xs text-slate-400 hover:text-white"
           >
-            <Loader2 v-if="isConnectingFB" class="h-4 w-4 animate-spin" />
-            <span v-else>Connect WhatsApp Number</span>
-            <ArrowRight class="h-4 w-4" />
+            &larr; Back to standard setup
           </button>
         </div>
 
-        <!-- 3-Step Visual Timeline -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div class="p-4 rounded-xl bg-white/[0.01] border border-white/[0.04]">
-            <div class="text-xs font-bold text-emerald-400 mb-1">Step 1</div>
-            <div class="text-xs font-semibold text-white">Login with Facebook</div>
-            <p class="text-[11px] text-slate-400 mt-1">Select your Meta Business Account and business category.</p>
-          </div>
-
-          <div class="p-4 rounded-xl bg-white/[0.01] border border-white/[0.04]">
-            <div class="text-xs font-bold text-teal-400 mb-1">Step 2</div>
-            <div class="text-xs font-semibold text-white">Enter WhatsApp Number</div>
-            <p class="text-[11px] text-slate-400 mt-1">Receive a 6-digit SMS or Voice OTP from WhatsApp to confirm ownership.</p>
-          </div>
-
-          <div class="p-4 rounded-xl bg-white/[0.01] border border-white/[0.04]">
-            <div class="text-xs font-bold text-cyan-400 mb-1">Step 3</div>
-            <div class="text-xs font-semibold text-white">Instant Launch</div>
-            <p class="text-[11px] text-slate-400 mt-1">Your number is synced to NexWhat. Start broadcasting right away!</p>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-between text-xs text-slate-400 pt-4 border-t border-white/[0.06]">
-          <span class="flex items-center gap-1.5">
-            <ShieldCheck class="h-4 w-4 text-emerald-400" />
-            Official Meta Cloud API Embedded Signup Partner
-          </span>
-          <button
-            type="button"
-            @click="activeTab = 'concierge'"
-            class="text-emerald-400 hover:underline font-medium"
-          >
-            Need help? Book a free setup call &rarr;
-          </button>
-        </div>
-      </div>
-
-      <!-- Tab 2: Fast-Track Auto-Discovery & Guided Number Link -->
-      <div v-else-if="activeTab === 'guided'" class="p-6 sm:p-8 space-y-6">
-        <!-- 1-Click Auto-Discovery Card (No technical IDs needed!) -->
-        <div class="p-5 rounded-2xl bg-gradient-to-r from-emerald-950/30 via-slate-900/60 to-teal-950/20 border border-emerald-500/20 space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="text-sm font-bold text-white flex items-center gap-2">
-              <Sparkles class="h-4 w-4 text-emerald-400" />
-              1-Click Token Auto-Discovery
-            </h3>
-            <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">
-              Zero ID Hunting
-            </span>
-          </div>
+        <div class="space-y-1.5">
+          <h3 class="text-lg font-bold text-white">Need help connecting?</h3>
           <p class="text-xs text-slate-300">
-            Have a Meta System User Access Token or Partner Token? Paste it below and NexWhat will automatically discover your WhatsApp Business Account (WABA ID), Phone Number ID, and register webhooks in 1 click!
+            Our onboarding team can assist you on WhatsApp chat to set up your Meta Business Account and number.
           </p>
-          <div class="space-y-3 pt-1">
-            <input
-              type="password"
-              v-model="metaToken"
-              placeholder="Paste Meta Access Token (e.g. EAAG...)"
-              class="w-full px-3.5 py-2.5 bg-black/40 border border-white/[0.1] rounded-xl text-xs text-emerald-300 font-mono placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
-            />
-            <button
-              type="button"
-              :disabled="isAutoDiscovering"
-              @click="handleAutoDiscoverToken"
-              class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
-            >
-              <Loader2 v-if="isAutoDiscovering" class="h-4 w-4 animate-spin" />
-              <span v-else>Auto-Detect & Link WhatsApp Line</span>
-              <ArrowRight class="h-4 w-4" />
-            </button>
-          </div>
         </div>
 
-        <div class="relative flex items-center justify-center">
-          <div class="border-t border-white/[0.08] w-full" />
-          <span class="bg-[#0a0d14] px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider absolute">
-            Or Use Guided OTP Verification
-          </span>
-        </div>
-
-        <!-- Step Indicator -->
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2">
-            <span :class="['h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold', guidedStep >= 1 ? 'bg-emerald-500 text-slate-950' : 'bg-white/10 text-slate-400']">1</span>
-            <span class="text-xs font-semibold text-white">Phone Details</span>
-          </div>
-          <div class="h-[1px] flex-1 bg-white/[0.08] mx-3" />
-          <div class="flex items-center gap-2">
-            <span :class="['h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold', guidedStep >= 2 ? 'bg-emerald-500 text-slate-950' : 'bg-white/10 text-slate-400']">2</span>
-            <span class="text-xs font-semibold text-white">OTP Verification</span>
-          </div>
-          <div class="h-[1px] flex-1 bg-white/[0.08] mx-3" />
-          <div class="flex items-center gap-2">
-            <span :class="['h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold', guidedStep === 3 ? 'bg-emerald-500 text-slate-950' : 'bg-white/10 text-slate-400']">3</span>
-            <span class="text-xs font-semibold text-white">Ready!</span>
-          </div>
-        </div>
-
-        <!-- Step 1: Input Details -->
-        <div v-if="guidedStep === 1" class="space-y-4">
+        <div v-if="!isConciergeBooked" class="space-y-3.5">
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Business Display Name</label>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Business Name</label>
             <input
               type="text"
-              v-model="businessName"
-              placeholder="e.g. Vegito Fresh / Acme Brands"
-              class="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+              v-model="conciergeBusiness"
+              placeholder="e.g. Acme Store"
+              class="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
             />
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1.5">WhatsApp Business Phone Number</label>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Your WhatsApp Number</label>
             <input
               type="tel"
-              v-model="phoneNumber"
-              placeholder="+91 98765 43210"
-              class="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500"
+              v-model="conciergePhone"
+              placeholder="e.g. +91 98765 43210"
+              class="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-emerald-500"
             />
-            <p class="text-[11px] text-slate-400 mt-1">Include country code (e.g. +91 for India, +1 for US/Canada).</p>
-          </div>
-
-          <div class="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06] text-xs">
-            <span class="font-semibold text-white block mb-1">Number Type:</span>
-            <div class="flex items-center gap-4 mt-2">
-              <label class="flex items-center gap-2 cursor-pointer text-slate-300">
-                <input type="radio" value="new" v-model="migrationType" class="text-emerald-500" />
-                <span>New / Virtual Number</span>
-              </label>
-              <label class="flex items-center gap-2 cursor-pointer text-slate-300">
-                <input type="radio" value="existing" v-model="migrationType" class="text-emerald-500" />
-                <span>Migrate from WhatsApp App</span>
-              </label>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            :disabled="isSubmittingGuided"
-            @click="handleGuidedNext"
-            class="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
-          >
-            <Loader2 v-if="isSubmittingGuided" class="h-4 w-4 animate-spin" />
-            <span v-else>Continue & Receive Verification OTP</span>
-            <ArrowRight class="h-4 w-4" />
-          </button>
-        </div>
-
-        <!-- Step 2: OTP Verification -->
-        <div v-else-if="guidedStep === 2" class="space-y-4">
-          <div class="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 space-y-1.5">
-            <div class="flex items-center gap-1.5 font-semibold">
-              <Sparkles class="h-3.5 w-3.5 text-emerald-400" />
-              <span>Instant Verification for <strong>{{ phoneNumber }}</strong></span>
-            </div>
-            <p class="text-[11px] text-slate-300 leading-relaxed">
-              To verify and activate this WhatsApp line immediately, enter code <strong>123456</strong> below. For official Meta carrier SMS OTPs, use the <strong>1-Click Meta Connect</strong> tab.
-            </p>
-          </div>
-
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <label class="block text-xs font-semibold text-slate-300">Enter 6-Digit WhatsApp Code</label>
-              <button
-                type="button"
-                @click="verificationCode = '123456'"
-                class="text-[11px] text-emerald-400 hover:text-emerald-300 underline font-medium"
-              >
-                Auto-fill 123456
-              </button>
-            </div>
-            <input
-              type="text"
-              maxlength="6"
-              v-model="verificationCode"
-              placeholder="123456"
-              class="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.08] rounded-xl text-center text-lg tracking-widest font-mono text-emerald-400 focus:outline-none focus:border-emerald-500"
-            />
-          </div>
-
-          <div class="flex gap-3">
-            <button
-              type="button"
-              @click="guidedStep = 1"
-              class="w-1/3 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs font-semibold text-slate-300"
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              :disabled="isSubmittingGuided"
-              @click="handleGuidedNext"
-              class="w-2/3 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
-            >
-              <Loader2 v-if="isSubmittingGuided" class="h-4 w-4 animate-spin" />
-              <span v-else>Verify & Register WhatsApp</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Step 3: Success -->
-        <div v-else-if="guidedStep === 3" class="py-6 text-center space-y-4">
-          <div class="h-16 w-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-xl shadow-emerald-500/20">
-            <CheckCircle2 class="h-8 w-8" />
-          </div>
-          <h3 class="text-xl font-bold text-white">WhatsApp Number Connected!</h3>
-          <p class="text-xs text-slate-300 max-w-sm mx-auto">
-            Your WhatsApp Business account is now live and ready to send broadcasts and receive inbound customer queries.
-          </p>
-          <button
-            type="button"
-            @click="emit('update:open', false)"
-            class="px-8 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all"
-          >
-            Go to Dashboard & Start Messaging
-          </button>
-        </div>
-      </div>
-
-      <!-- Tab 3: Done-For-You Free Concierge -->
-      <div v-else-if="activeTab === 'concierge'" class="p-6 sm:p-8 space-y-6">
-        <div class="p-6 rounded-2xl bg-gradient-to-r from-teal-950/30 to-emerald-950/30 border border-teal-500/20 space-y-3 text-left">
-          <div class="flex items-center gap-2 text-teal-400 text-xs font-bold">
-            <Headphones class="h-4 w-4" />
-            <span>100% Free Dedicated Onboarding Concierge</span>
-          </div>
-          <h3 class="text-lg font-bold text-white">Prefer We Link It For You on a Quick Call?</h3>
-          <p class="text-xs text-slate-300 leading-relaxed">
-            Our WhatsApp onboarding engineers will guide you over WhatsApp chat or a 10-minute Google Meet screen-share to set up your Meta Business Account, verify your business phone, and apply for Green Tick verification.
-          </p>
-        </div>
-
-        <div v-if="!isConciergeBooked" class="space-y-4">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-300 mb-1.5">Your Business Name</label>
-              <input
-                type="text"
-                v-model="conciergeBusiness"
-                placeholder="e.g. Acme Fashion"
-                class="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs text-white focus:outline-none focus:border-teal-500"
-              />
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-300 mb-1.5">Your WhatsApp Contact Number</label>
-              <input
-                type="tel"
-                v-model="conciergePhone"
-                placeholder="e.g. +91 98765 43210"
-                class="w-full px-3.5 py-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs text-white focus:outline-none focus:border-teal-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-slate-300 mb-1.5">Preferred Assistance Mode</label>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-              <label :class="['p-3 rounded-xl border flex items-center gap-2 cursor-pointer transition-colors', conciergeChannel === 'whatsapp' ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-white/[0.02] border-white/[0.06] text-slate-300']">
-                <input type="radio" value="whatsapp" v-model="conciergeChannel" class="hidden" />
-                <MessageSquare class="h-3.5 w-3.5" />
-                <span>WhatsApp Priority Chat</span>
-              </label>
-              <label :class="['p-3 rounded-xl border flex items-center gap-2 cursor-pointer transition-colors', conciergeChannel === 'phone' ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-white/[0.02] border-white/[0.06] text-slate-300']">
-                <input type="radio" value="phone" v-model="conciergeChannel" class="hidden" />
-                <Phone class="h-3.5 w-3.5" />
-                <span>Direct Phone Call</span>
-              </label>
-              <label :class="['p-3 rounded-xl border flex items-center gap-2 cursor-pointer transition-colors', conciergeChannel === 'meet' ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300' : 'bg-white/[0.02] border-white/[0.06] text-slate-300']">
-                <input type="radio" value="meet" v-model="conciergeChannel" class="hidden" />
-                <Sparkles class="h-3.5 w-3.5" />
-                <span>10-Min Google Meet</span>
-              </label>
-            </div>
           </div>
 
           <button
             type="button"
             :disabled="isSubmittingConcierge"
             @click="handleConciergeSubmit"
-            class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-xl shadow-teal-500/20 hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+            class="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-60 cursor-pointer"
           >
             <Loader2 v-if="isSubmittingConcierge" class="h-4 w-4 animate-spin" />
-            <MessageSquare v-else class="h-4 w-4" />
-            <span>Connect with Setup Specialist on WhatsApp Now</span>
+            <span v-else>Chat with Specialist on WhatsApp</span>
           </button>
         </div>
 
-        <div v-else class="p-6 text-center space-y-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-          <CheckCircle2 class="h-8 w-8 text-emerald-400 mx-auto" />
-          <h4 class="text-sm font-bold text-white">Setup Request Confirmed! Specialist Assigned</h4>
+        <div v-else class="p-4 text-center space-y-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+          <CheckCircle2 class="h-7 w-7 text-emerald-400 mx-auto" />
+          <h4 class="text-sm font-bold text-white">We're on it!</h4>
           <p class="text-xs text-slate-300">
-            Our onboarding engineer has received your request and WhatsApp chat has been initiated. We will have your number live in under 10 minutes!
+            WhatsApp conversation opened. A specialist is ready to assist you.
           </p>
+        </div>
+      </div>
+
+      <!-- Main Client View: 1-Click Meta Login -->
+      <div v-else class="p-6 sm:p-7 space-y-6">
+        <!-- Header -->
+        <div class="space-y-1.5 text-center sm:text-left">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[11px] font-semibold mb-1">
+            <Sparkles class="h-3 w-3" />
+            <span>Official WhatsApp Partner</span>
+          </div>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+            Connect with Meta
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-300">
+            Log in with your Facebook account to connect or register your WhatsApp Business number.
+          </p>
+        </div>
+
+        <!-- Primary Connect Button Card -->
+        <div class="p-5 rounded-2xl bg-white/[0.03] border border-white/10 text-center space-y-4">
+          <button
+            type="button"
+            :disabled="isConnectingFB"
+            @click="launch1ClickMetaConnect"
+            class="w-full py-3.5 px-6 rounded-xl bg-[#1877F2] hover:bg-[#166fe5] text-white font-bold text-sm shadow-xl shadow-blue-500/20 hover:shadow-blue-500/30 transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-60"
+          >
+            <Loader2 v-if="isConnectingFB" class="h-5 w-5 animate-spin" />
+            <template v-else>
+              <svg class="h-5 w-5 fill-current" viewBox="0 0 24 24">
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+              </svg>
+              <span>Log in with Facebook / Meta</span>
+            </template>
+          </button>
+
+          <p class="text-[11px] text-slate-400">
+            A secure Meta popup will open. No technical setup required.
+          </p>
+        </div>
+
+        <!-- 3 Quick Steps -->
+        <div class="space-y-2.5">
+          <div class="text-xs font-semibold text-slate-300">What happens next:</div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-left">
+            <div class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+              <div class="text-xs font-bold text-emerald-400 mb-0.5">1. Log In</div>
+              <p class="text-[11px] text-slate-400">Sign in with the Facebook profile that manages your business.</p>
+            </div>
+            <div class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+              <div class="text-xs font-bold text-teal-400 mb-0.5">2. Select Number</div>
+              <p class="text-[11px] text-slate-400">Choose your existing WhatsApp business number or add a new one.</p>
+            </div>
+            <div class="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+              <div class="text-xs font-bold text-cyan-400 mb-0.5">3. Verify via SMS</div>
+              <p class="text-[11px] text-slate-400">Enter the 6-digit verification code sent by WhatsApp.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer / Support Link -->
+        <div class="flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-white/[0.08]">
+          <span class="flex items-center gap-1.5">
+            <ShieldCheck class="h-4 w-4 text-emerald-400" />
+            Official Meta Cloud API
+          </span>
+
+          <button
+            type="button"
+            @click="showConcierge = true"
+            class="text-emerald-400 hover:text-emerald-300 font-medium cursor-pointer"
+          >
+            Need help? Chat with us
+          </button>
+        </div>
+
+        <!-- Subtle Advanced Toggle -->
+        <div class="pt-1">
+          <button
+            type="button"
+            @click="showAdvanced = !showAdvanced"
+            class="text-[11px] text-slate-400 hover:text-slate-300 flex items-center gap-1 mx-auto"
+          >
+            <span>Advanced options</span>
+            <ChevronDown v-if="!showAdvanced" class="h-3 w-3" />
+            <ChevronUp v-else class="h-3 w-3" />
+          </button>
+
+          <!-- Collapsible Manual Form -->
+          <div v-if="showAdvanced" class="mt-3 p-4 rounded-xl bg-white/[0.02] border border-white/[0.08] space-y-3">
+            <div class="text-xs font-semibold text-slate-300">Manual API Connection</div>
+            <div>
+              <input
+                type="text"
+                v-model="manualBusinessName"
+                placeholder="Business Name"
+                class="w-full px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-xs text-white mb-2"
+              />
+              <input
+                type="text"
+                v-model="manualPhoneId"
+                placeholder="Phone Number ID"
+                class="w-full px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-xs text-white mb-2"
+              />
+              <input
+                type="text"
+                v-model="manualWabaId"
+                placeholder="WABA ID"
+                class="w-full px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-xs text-white mb-2"
+              />
+              <input
+                type="password"
+                v-model="manualAccessToken"
+                placeholder="System User Access Token"
+                class="w-full px-3 py-2 bg-white/[0.04] border border-white/10 rounded-lg text-xs text-white mb-2 font-mono"
+              />
+              <button
+                type="button"
+                :disabled="isSavingManual"
+                @click="handleSaveManualCredentials"
+                class="w-full py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs"
+              >
+                <Loader2 v-if="isSavingManual" class="h-4 w-4 animate-spin mx-auto" />
+                <span v-else>Save Manual Credentials</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </DialogContent>

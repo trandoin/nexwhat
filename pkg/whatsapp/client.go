@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/zerodha/logf"
@@ -699,24 +700,39 @@ type TokenDebugInfo struct {
 	} `json:"granular_scopes"`
 }
 
-// GetTokenDebugInfo retrieves information about an access token
+// GetTokenDebugInfo retrieves information about an access token using Meta's debug_token endpoint.
+// Meta requires access_token to be supplied in the query string when using an App Access Token (app_id|app_secret).
 func (c *Client) GetTokenDebugInfo(ctx context.Context, inputToken, accessToken string) (*TokenDebugInfo, error) {
-	url := fmt.Sprintf("%s/debug_token?input_token=%s", c.getBaseURL(), inputToken)
+	apiURL := fmt.Sprintf("%s/debug_token?input_token=%s&access_token=%s", c.getBaseURL(), url.QueryEscape(inputToken), url.QueryEscape(accessToken))
 
-	// debug_token requires an app access token or a user access token
-	respBody, err := c.doRequest(ctx, http.MethodGet, url, nil, accessToken)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create token debug request: %w", err)
+	}
+
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get token debug info: %w", err)
 	}
+	defer func() { _ = resp.Body.Close() }()
 
-	var resp struct {
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read token debug response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("debug_token returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var respDecoded struct {
 		Data TokenDebugInfo `json:"data"`
 	}
-	if err := json.Unmarshal(respBody, &resp); err != nil {
+	if err := json.Unmarshal(respBody, &respDecoded); err != nil {
 		return nil, fmt.Errorf("failed to parse token debug info: %w", err)
 	}
 
-	return &resp.Data, nil
+	return &respDecoded.Data, nil
 }
 
 // SharedWABAResponse represents the response structure for shared WABA request

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node --max-http-header-size=65536 node_modules/vite/bin/vite.js",
     "build": "vite build && npm --prefix ../admin run build",
     "build:client": "vite build",
     "typecheck": "vue-tsc --noEmit",
