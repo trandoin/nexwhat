@@ -13,6 +13,7 @@ import MetadataPanel from '@/components/shared/MetadataPanel.vue'
 import AuditLogPanel from '@/components/shared/AuditLogPanel.vue'
 import UnsavedChangesDialog from '@/components/shared/UnsavedChangesDialog.vue'
 import BusinessProfileDialog from './BusinessProfileDialog.vue'
+import SendTestMessageModal from '@/components/onboarding/SendTestMessageModal.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -101,6 +102,7 @@ const testResult = ref<TestResult | null>(null)
 const testingConnection = ref(false)
 const subscribing = ref(false)
 const isProfileDialogOpen = ref(false)
+const isSendTestModalOpen = ref(false)
 
 const { showLeaveDialog, confirmLeave, cancelLeave } = useUnsavedChangesGuard(hasChanges)
 
@@ -287,6 +289,10 @@ onMounted(async () => {
           <Loader2 v-if="testingConnection" class="h-4 w-4 animate-spin mr-1" />
           <RefreshCw v-else class="h-4 w-4 mr-1" />
           {{ $t('accounts.test', 'Test') }}
+        </Button>
+        <Button v-if="!isNew && account" variant="outline" size="sm" class="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10" @click="isSendTestModalOpen = true">
+          <Send class="h-4 w-4 mr-1 text-emerald-400" />
+          <span>Send Test WhatsApp</span>
         </Button>
         <Button v-if="!isNew && account" variant="outline" size="sm" :disabled="subscribing" @click="subscribeApp">
           <Loader2 v-if="subscribing" class="h-4 w-4 animate-spin mr-1" />
@@ -536,6 +542,13 @@ onMounted(async () => {
     v-model:open="isProfileDialogOpen"
     :account-id="account.id"
     :account-name="account.name"
+  />
+
+  <!-- Send Test WhatsApp Message Modal -->
+  <SendTestMessageModal
+    v-if="account"
+    v-model:open="isSendTestModalOpen"
+    :account="account"
   />
 
   <UnsavedChangesDialog :open="showLeaveDialog" @stay="cancelLeave" @leave="confirmLeave" />

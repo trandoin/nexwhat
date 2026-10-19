@@ -157,6 +157,50 @@ function launchWhatsAppSignup(isCoexistence: boolean = true) {
   showOnboardingDialog.value = false
   isConnectingFB.value = true
 
+  let sessionPhoneNumberId = ''
+  let sessionWabaId = ''
+  let authCode = ''
+  let hasExchanged = false
+  let fallbackTimer: any = null
+
+  const doExchange = () => {
+    if (hasExchanged || !authCode) return
+    hasExchanged = true
+    if (fallbackTimer) clearTimeout(fallbackTimer)
+    window.removeEventListener('message', sessionInfoListener)
+    console.log('[Meta AccountsView] Dispatching token exchange with:', {
+      hasCode: !!authCode,
+      phone_id: sessionPhoneNumberId,
+      waba_id: sessionWabaId
+    })
+    exchangeCodeForToken(authCode, sessionPhoneNumberId, sessionWabaId)
+  }
+
+  const sessionInfoListener = (event: MessageEvent) => {
+    if (!event.origin || (!event.origin.includes('facebook.com') && !event.origin.includes('meta.com'))) {
+      return
+    }
+    try {
+      const raw = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+      if (!raw) return
+      console.log('[Meta AccountsView] Captured window postMessage:', raw)
+
+      const payload = raw.data?.sessionInfo || raw.sessionInfo || raw.data || raw
+      const pId = payload?.phone_number_id || payload?.phoneNumberId || raw.phone_number_id || raw.data?.phone_number_id
+      const wId = payload?.waba_id || payload?.wabaId || payload?.account_id || raw.waba_id || raw.data?.waba_id
+      if (pId) sessionPhoneNumberId = String(pId)
+      if (wId) sessionWabaId = String(wId)
+
+      if (authCode && (sessionPhoneNumberId || sessionWabaId)) {
+        doExchange()
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  window.addEventListener('message', sessionInfoListener)
+
   const loginOptions: any = {
     config_id: whatsappConfig.value.config_id,
     response_type: 'code',
@@ -172,29 +216,35 @@ function launchWhatsAppSignup(isCoexistence: boolean = true) {
     }
   } else {
     loginOptions.extras = {
-      setup: {}
+      setup: {},
+      sessionInfoVersion: '2'
     }
   }
 
   window.FB.login(
     (response: any) => {
-      if (response.authResponse) {
-        const code = response.authResponse.code
-        const phoneNumberId = response.authResponse.phone_number_id
-        const wabaId = response.authResponse.waba_id
+      if (response.authResponse && response.authResponse.code) {
+        authCode = response.authResponse.code
+        if (response.authResponse.phone_number_id) sessionPhoneNumberId = String(response.authResponse.phone_number_id)
+        if (response.authResponse.waba_id) sessionWabaId = String(response.authResponse.waba_id)
 
-        if (!code) {
-          toast.error('Incomplete data from Facebook: missing authorization code')
-          isConnectingFB.value = false
-          return
+        if (sessionPhoneNumberId || sessionWabaId) {
+          doExchange()
+        } else {
+          fallbackTimer = setTimeout(() => {
+            console.log('[Meta AccountsView] Timeout waiting for postMessage, proceeding with available data')
+            doExchange()
+          }, 2000)
         }
-
-        exchangeCodeForToken(code, phoneNumberId, wabaId)
       } else if (response.error) {
+        if (fallbackTimer) clearTimeout(fallbackTimer)
+        window.removeEventListener('message', sessionInfoListener)
         console.error('Facebook SDK error:', response.error)
         toast.error(`Facebook error: ${response.error.message || 'Unknown error'}`)
         isConnectingFB.value = false
       } else {
+        if (fallbackTimer) clearTimeout(fallbackTimer)
+        window.removeEventListener('message', sessionInfoListener)
         toast.error('Facebook login was cancelled')
         isConnectingFB.value = false
       }
