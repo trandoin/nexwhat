@@ -66,9 +66,10 @@ import { ExternalLink, Sparkles, ShieldCheck, Zap } from 'lucide-vue-next'
         <h4 class="text-xs font-semibold text-white uppercase tracking-wider mb-3">Company & Legal</h4>
         <ul class="space-y-2 text-xs text-slate-400">
           <li><RouterLink to="/about" class="hover:text-emerald-400 transition-colors">About NexWhat</RouterLink></li>
-          <li><a href="https://nexteir.com" target="_blank" rel="noopener noreferrer" class="hover:text-emerald-400 transition-colors inline-flex items-center gap-1">Nexteir Company <ExternalLink class="w-2.5 h-2.5 opacity-70" /></a></li>
-          <li><RouterLink to="/privacy" class="hover:text-emerald-400 transition-colors">Privacy Policy</RouterLink></li>
-          <li><RouterLink to="/terms" class="hover:text-emerald-400 transition-colors">Terms of Service</RouterLink></li>
+          <li><a href="https://nexteir.in" target="_blank" rel="noopener noreferrer" class="hover:text-emerald-400 transition-colors inline-flex items-center gap-1">Nexteir (<span class="underline">nexteir.in</span>) <ExternalLink class="w-2.5 h-2.5 opacity-70" /></a></li>
+          <li><RouterLink to="/whatsapp/privacy-policy" class="hover:text-emerald-400 transition-colors">Privacy Policy</RouterLink></li>
+          <li><RouterLink to="/whatsapp/terms" class="hover:text-emerald-400 transition-colors">Terms of Service</RouterLink></li>
+          <li><RouterLink to="/whatsapp/data-deletion" class="hover:text-emerald-400 transition-colors">User Data Deletion</RouterLink></li>
           <li><RouterLink to="/refund" class="hover:text-emerald-400 transition-colors">Refund & Cancellation</RouterLink></li>
           <li><RouterLink to="/login" class="hover:text-emerald-400 transition-colors">Account Sign In</RouterLink></li>
         </ul>
@@ -80,15 +81,16 @@ import { ExternalLink, Sparkles, ShieldCheck, Zap } from 'lucide-vue-next'
       <div class="flex items-center flex-wrap gap-2">
         <span>© 2026 NexWhat. All rights reserved.</span>
         <span>•</span>
-        <span class="text-slate-400">Powered by <a href="https://nexteir.com" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 underline font-medium">Nexteir</a></span>
+        <span class="text-slate-400">Powered by <a href="https://nexteir.in" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 underline font-medium">Nexteir (nexteir.in)</a></span>
       </div>
       <div class="flex items-center gap-6">
-        <RouterLink to="/privacy" class="hover:text-slate-400 transition-colors">Privacy</RouterLink>
-        <RouterLink to="/terms" class="hover:text-slate-400 transition-colors">Terms</RouterLink>
+        <RouterLink to="/whatsapp/privacy-policy" class="hover:text-slate-400 transition-colors">Privacy</RouterLink>
+        <RouterLink to="/whatsapp/terms" class="hover:text-slate-400 transition-colors">Terms</RouterLink>
+        <RouterLink to="/whatsapp/data-deletion" class="hover:text-slate-400 transition-colors">Data Deletion</RouterLink>
         <RouterLink to="/refund" class="hover:text-slate-400 transition-colors">Refunds</RouterLink>
         <RouterLink to="/about" class="hover:text-slate-400 transition-colors">About</RouterLink>
-        <a href="https://nexteir.com" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition-colors inline-flex items-center gap-1 font-medium">
-          nexteir.com <ExternalLink class="w-3 h-3" />
+        <a href="https://nexteir.in" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 transition-colors inline-flex items-center gap-1 font-medium">
+          nexteir.in <ExternalLink class="w-3 h-3" />
         </a>
       </div>
     </div>

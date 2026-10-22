@@ -60,7 +60,7 @@ import { ShieldCheck, MessageSquare, ArrowLeft, Lock, Eye, Server, RefreshCw, Ma
             1. Overview & Commitment
           </h2>
           <p class="mb-3">
-            At NexWhat ("we", "our", or "us"), we operate on a fundamental principle of customer data sovereignty. We empower modern enterprises to engage with their clients over the WhatsApp Business Cloud API while ensuring zero data exploitation.
+            At NexWhat ("we", "our", or "us"), operated by Nexteir (<a href="https://www.nexteir.in" class="text-emerald-400 hover:underline">nexteir.in</a> / <a href="https://www.nexteir.com" class="text-emerald-400 hover:underline">nexteir.com</a>), we operate on a fundamental principle of customer data sovereignty. We empower modern enterprises to engage with their clients over the WhatsApp Business Cloud API while ensuring zero data exploitation.
           </p>
           <p>
             We do not sell, rent, monetise, or distribute your customer lists, conversation contents, phone numbers, or analytics to any third party. Your data remains strictly yours.
@@ -101,8 +101,14 @@ import { ShieldCheck, MessageSquare, ArrowLeft, Lock, Eye, Server, RefreshCw, Ma
           <p class="mb-3">
             You maintain full control over your customer records. You may export or permanently purge contacts, message history, and automated flows from your workspace settings at any time.
           </p>
-          <p>
+          <p class="mb-3">
             Upon account cancellation, all tenant records are archived for a 30-day grace period to prevent accidental data loss, after which all databases and associated cryptographic tokens are permanently erased.
+          </p>
+          <p class="text-xs text-slate-400">
+            For specific instructions on deleting your Meta WhatsApp connection, see our
+            <RouterLink to="/whatsapp/data-deletion" class="text-emerald-400 underline hover:text-emerald-300">
+              User Data Deletion Instructions
+            </RouterLink>.
           </p>
         </section>
 
@@ -115,7 +121,7 @@ import { ShieldCheck, MessageSquare, ArrowLeft, Lock, Eye, Server, RefreshCw, Ma
             For privacy inquiries, GDPR/DPDP data subject access requests, or security audit questions:
           </p>
           <p class="text-emerald-400 font-mono text-xs">
-            Email: privacy@nexwhat.com • legal@nexwhat.com
+            Email: privacy@nexteir.in • support@nexteir.in • legal@nexteir.com
           </p>
         </section>
       </div>
