@@ -47,10 +47,54 @@ const router = createRouter({
       meta: { requiresAuth: false }
     },
     {
+      path: '/privacy-policy',
+      redirect: '/privacy'
+    },
+    {
+      path: '/whatsapp/privacy-policy',
+      name: 'whatsapp-privacy-policy',
+      component: () => import('@/views/pages/PrivacyPolicyView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/whatsapp/privacy',
+      redirect: '/whatsapp/privacy-policy'
+    },
+    {
       path: '/terms',
       name: 'terms-conditions',
       component: () => import('@/views/pages/TermsConditionsView.vue'),
       meta: { requiresAuth: false }
+    },
+    {
+      path: '/terms-of-service',
+      redirect: '/terms'
+    },
+    {
+      path: '/whatsapp/terms',
+      name: 'whatsapp-terms',
+      component: () => import('@/views/pages/TermsConditionsView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/whatsapp/terms-of-service',
+      redirect: '/whatsapp/terms'
+    },
+    {
+      path: '/data-deletion',
+      name: 'data-deletion',
+      component: () => import('@/views/pages/DataDeletionView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/whatsapp/data-deletion',
+      name: 'whatsapp-data-deletion',
+      component: () => import('@/views/pages/DataDeletionView.vue'),
+      meta: { requiresAuth: false }
+    },
+    {
+      path: '/whatsapp/data-deletion-instructions',
+      redirect: '/whatsapp/data-deletion'
     },
     {
       path: '/refund',

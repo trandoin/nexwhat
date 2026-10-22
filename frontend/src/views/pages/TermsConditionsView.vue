@@ -60,7 +60,7 @@ import { FileText, MessageSquare, ArrowLeft, CheckCircle2, AlertTriangle, Shield
             1. Acceptance of Terms
           </h2>
           <p>
-            By registering for, accessing, or using the NexWhat platform ("Service"), you agree to be bound by these Terms of Service. If you are accepting on behalf of a company, organization, or enterprise, you represent and warrant that you possess the full legal authority to bind that entity.
+            By registering for, accessing, or using the NexWhat platform ("Service"), provided by Nexteir (<a href="https://www.nexteir.in" class="text-emerald-400 hover:underline">nexteir.in</a> / <a href="https://www.nexteir.com" class="text-emerald-400 hover:underline">nexteir.com</a>), you agree to be bound by these Terms of Service. If you are accepting on behalf of a company, organization, or enterprise, you represent and warrant that you possess the full legal authority to bind that entity.
           </p>
         </section>
 
@@ -110,6 +110,18 @@ import { FileText, MessageSquare, ArrowLeft, CheckCircle2, AlertTriangle, Shield
           </h2>
           <p>
             We strive to maintain a 99.9% platform uptime for our dashboard, webhook ingress, and automation dispatchers. Scheduled maintenance will be communicated at least 24 hours in advance. NexWhat is not liable for upstream Meta API outages or WhatsApp network disruptions.
+          </p>
+        </section>
+
+        <section class="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
+          <h2 class="text-lg font-bold text-white mb-3">
+            6. Inquiries & Legal Notices
+          </h2>
+          <p class="mb-2">
+            For inquiries regarding our terms, commercial agreements, or legal notices:
+          </p>
+          <p class="text-emerald-400 font-mono text-xs">
+            Email: legal@nexteir.in • support@nexteir.in • privacy@nexteir.in
           </p>
         </section>
       </div>
