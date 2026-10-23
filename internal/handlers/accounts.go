@@ -792,6 +792,14 @@ func (a *App) ExchangeToken(r *fastglue.Request) error {
 		return r.SendErrorEnvelope(fasthttp.StatusInternalServerError, "Failed to save account", nil, "")
 	}
 
+	// If account was previously soft-deleted, restore it in the database
+	if existingAccount && oldAccount != nil && oldAccount.DeletedAt.Valid {
+		if err := a.DB.Unscoped().Model(account).Update("deleted_at", nil).Error; err != nil {
+			a.Log.Error("Failed to restore soft-deleted account", "error", err)
+		}
+		account.DeletedAt.Valid = false
+	}
+
 	// Invalidate cache
 	a.InvalidateWhatsAppAccountCache(account.PhoneID)
 
