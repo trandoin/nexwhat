@@ -106,6 +106,12 @@ export const useContactsStore = defineStore('contacts', () => {
   // visible list is whatever the server returned — no extra local filtering.
   const filteredContacts = computed(() => contacts.value)
 
+  const totalUnreadCount = computed(() => {
+    return contacts.value.reduce((sum, c) => sum + (c.unread_count || 0), 0)
+  })
+
+  const hasUnread = computed(() => totalUnreadCount.value > 0)
+
   const sortedContacts = computed(() => {
     return [...filteredContacts.value].sort((a, b) => {
       const dateA = a.last_message_at ? new Date(a.last_message_at).getTime() : 0
@@ -332,6 +338,10 @@ export const useContactsStore = defineStore('contacts', () => {
     replyingTo.value = null // Clear reply state when switching contacts
     if (contact) {
       contact.unread_count = 0
+      const stored = contacts.value.find(c => c.id === contact.id)
+      if (stored) {
+        stored.unread_count = 0
+      }
     }
   }
 
@@ -407,6 +417,8 @@ export const useContactsStore = defineStore('contacts', () => {
     setReplyingTo,
     clearReplyingTo,
     updateMessageReactions,
-    updateContactTags
+    updateContactTags,
+    totalUnreadCount,
+    hasUnread
   }
 })

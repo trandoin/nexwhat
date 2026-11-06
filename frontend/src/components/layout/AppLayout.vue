@@ -3,10 +3,10 @@ import { ref, computed, onMounted } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import { useContactsStore } from '@/stores/contacts'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
-  MessageSquare,
   ChevronLeft,
   ChevronRight,
   Menu,
@@ -26,6 +26,7 @@ useI18n() // Enable $t() in template
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const contactsStore = useContactsStore()
 const isCollapsed = ref(false)
 const isMobileMenuOpen = ref(false)
 
@@ -34,6 +35,7 @@ onMounted(() => {
   if (authStore.isAuthenticated) {
     // Fetch fresh permissions in background (non-destructive — interceptor handles 401)
     authStore.refreshUserData()
+    contactsStore.fetchContacts()
 
     wsService.connect(async () => {
       try {
@@ -196,8 +198,26 @@ const handleLogout = async () => {
                   :aria-current="item.active ? 'page' : undefined"
                   @click="isMobileMenuOpen = false"
                 >
-                  <component :is="item.icon" :class="['h-4 w-4 shrink-0', item.active ? 'text-emerald-400' : 'text-slate-400']" aria-hidden="true" />
+                  <div class="relative shrink-0 flex items-center justify-center">
+                    <component :is="item.icon" :class="['h-4 w-4', item.active ? 'text-emerald-400' : 'text-slate-400']" aria-hidden="true" />
+                    <!-- Green unread dot indicator on Chat icon -->
+                    <span
+                      v-if="item.path === '/chat' && contactsStore.hasUnread"
+                      class="absolute -top-1 -right-1 flex h-2.5 w-2.5"
+                      title="Unread messages"
+                    >
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 ring-2 ring-[#0a0a0b] light:ring-white" />
+                    </span>
+                  </div>
                   <span :class="isCollapsed && 'md:sr-only'">{{ $t(item.name) }}</span>
+                  <!-- Unread count badge on the right when expanded -->
+                  <span
+                    v-if="item.path === '/chat' && contactsStore.hasUnread && !isCollapsed"
+                    class="ml-auto inline-flex items-center justify-center rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-400 light:bg-emerald-100 light:text-emerald-700"
+                  >
+                    {{ contactsStore.totalUnreadCount }}
+                  </span>
                 </RouterLink>
 
                 <!-- Submenu items -->
